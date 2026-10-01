@@ -164,10 +164,17 @@ class Fit(BaseModel):
     cloud_points: int
     bonus_points: int
     total: int
-    size_basis: str
+    size_basis: str  # e.g. "51-1000 (website)"
     cloud_basis: str
+    size_known: bool  # False when the axis fell back to the neutral value
+    cloud_known: bool
     bonuses: list[str] = []
-    complete: bool  # False when an axis had to fall back to the neutral value
+    conflicts: list[str] = []  # form answers that research contradicts
+
+    @property
+    def data(self) -> str:
+        known = self.size_known + self.cloud_known
+        return ("none", "partial", "full")[known]
 
 
 class Decision(BaseModel):
