@@ -4,6 +4,6 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
-runs/
+/runs/
 ~$*.xlsx
-leads.xlsx
+/leads.xlsx

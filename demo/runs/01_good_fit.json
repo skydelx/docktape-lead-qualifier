@@ -1,0 +1,124 @@
+{
+  "seconds": 20.6,
+  "llm_requests": 2,
+  "input_tokens": 62536,
+  "output_tokens": 1292,
+  "result": {
+    "contact": {
+      "name": "Ada Example",
+      "email": "ada.example@bitrise.io",
+      "job_title": "VP Engineering"
+    },
+    "company": {
+      "name": "Bitrise",
+      "website_url": "https://bitrise.io",
+      "domain": "bitrise.io",
+      "email_domain": "bitrise.io",
+      "declared_country": null,
+      "declared_size": "unknown",
+      "declared_spend": "unknown",
+      "declared_providers": [],
+      "message": null,
+      "notes": []
+    },
+    "research": {
+      "status": "ok",
+      "final_domain": "bitrise.io",
+      "what_they_do": "Bitrise sells a mobile DevOps platform (CI/CD, build cache, release management, CodePush) to mobile app teams building iOS and Android apps.",
+      "summary": "Bitrise runs a managed mobile CI/CD platform on Apple silicon build infrastructure, with GCP and AWS hosting options, serving 8,500+ teams. Cost optimization may matter because build compute at that scale is a large cost driver. Suggested opener: \"Bitrise runs 2M+ builds a month, so how do you keep build infrastructure costs under control as usage grows?\"",
+      "hq_country": "Hungary",
+      "hq_city": "Budapest",
+      "size": "unknown",
+      "workload": "high",
+      "cloud_providers": [
+        "gcp",
+        "aws"
+      ],
+      "other_names": [],
+      "sells_cloud_cost_optimization": false,
+      "stated_pain": false,
+      "evidence": {
+        "hq_country": {
+          "source": "search",
+          "quote": null,
+          "url": "https://hu.linkedin.com/company/bitrise"
+        },
+        "workload": {
+          "source": "page",
+          "quote": "2M+ builds per month",
+          "url": "https://bitrise.io/about"
+        },
+        "cloud_providers": {
+          "source": "page",
+          "quote": "Bitrise from GCP self-hosted solutions Bitrise on AWS",
+          "url": "https://bitrise.io"
+        }
+      },
+      "pages_fetched": [
+        "https://bitrise.io",
+        "https://bitrise.io/about",
+        "https://bitrise.io/about/our-impact",
+        "https://bitrise.io/contact",
+        "https://bitrise.io/legal/terms-of-service"
+      ],
+      "other_links": [
+        "https://bitrise.io/",
+        "https://bitrise.io/platform/bitrise-ci",
+        "https://bitrise.io/platform/build-cache",
+        "https://bitrise.io/platform/release-management",
+        "https://bitrise.io/platform/codepush",
+        "https://bitrise.io/platform/build-hub",
+        "https://bitrise.io/platform/devops/insights",
+        "https://bitrise.io/platform/bitrise-ai",
+        "https://bitrise.io/platform/remote-dev-environments",
+        "https://bitrise.io/platform/mobile-devops",
+        "https://bitrise.io/platform/build-platform/bitrise-build-platform",
+        "https://bitrise.io/platform/build-platform/dedicated-build-platform",
+        "https://bitrise.io/platform/build-platform/private-build-platform",
+        "https://bitrise.io/platform/build-platform/bitrise-from-gcp",
+        "https://bitrise.io/platform/build-platform/bitrise-on-aws",
+        "https://bitrise.io/platform/build-platform/bitrise-runners",
+        "https://bitrise.io/platform/devops/build-platform",
+        "https://bitrise.io/on-demand-platform-demo",
+        "https://bitrise.io/solutions/enterprise",
+        "https://bitrise.io/solutions/scaleup"
+      ]
+    },
+    "compliance": {
+      "competitor": "clear",
+      "matched_entry": null,
+      "match_type": "none",
+      "sanctions": "clear",
+      "hq_country": "Hungary",
+      "reasoning": "Bitrise sells a mobile CI/CD platform, not cloud cost optimization, and its name doesn't resemble CloudTrim, SpendWise Cloud or RightSize Cloud Co. Its headquarters is in Budapest, Hungary, which isn't a sanctioned place, so you can pass it to sales.",
+      "evidence": [
+        "Sells a mobile DevOps platform (CI/CD, build cache, release management, CodePush)",
+        "Sells cloud cost optimization itself: False",
+        "Headquarters: Budapest, Hungary (LinkedIn)"
+      ],
+      "safety_net": [],
+      "overridden": []
+    },
+    "fit": {
+      "size_points": 25,
+      "cloud_points": 40,
+      "bonus_points": 10,
+      "total": 75,
+      "priority": "high",
+      "size_basis": "unknown",
+      "cloud_basis": "high workload, inferred (website)",
+      "size_known": false,
+      "cloud_known": true,
+      "bonuses": [
+        "runs on aws",
+        "decision maker (VP Engineering)"
+      ],
+      "conflicts": []
+    },
+    "decision": {
+      "route": "SALES-READY",
+      "reason": "Compliance clear; high priority (fit 75)"
+    },
+    "processed_at": "2026-10-01T19:47:49.120123"
+  }
+}

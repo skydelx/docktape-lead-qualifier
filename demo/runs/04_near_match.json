@@ -1,0 +1,78 @@
+{
+  "seconds": 5.8,
+  "llm_requests": 1,
+  "input_tokens": 2368,
+  "output_tokens": 418,
+  "result": {
+    "contact": {
+      "name": "Luis Example",
+      "email": "luis.example@clowdtrim.test",
+      "job_title": "Founder"
+    },
+    "company": {
+      "name": "ClowdTrim Analytics",
+      "website_url": "https://clowdtrim.test",
+      "domain": "clowdtrim.test",
+      "email_domain": "clowdtrim.test",
+      "declared_country": "Portugal",
+      "declared_size": "1-10",
+      "declared_spend": "unknown",
+      "declared_providers": [],
+      "message": "We build dashboards that show where a cloud budget goes and want to compare notes.",
+      "notes": []
+    },
+    "research": {
+      "status": "unreachable",
+      "final_domain": null,
+      "what_they_do": "",
+      "summary": "",
+      "hq_country": null,
+      "hq_city": null,
+      "size": "unknown",
+      "workload": "unknown",
+      "cloud_providers": [],
+      "other_names": [],
+      "sells_cloud_cost_optimization": false,
+      "stated_pain": false,
+      "evidence": {},
+      "pages_fetched": [],
+      "other_links": []
+    },
+    "compliance": {
+      "competitor": "possible_match",
+      "matched_entry": "CloudTrim Inc",
+      "match_type": "partial_name",
+      "sanctions": "unknown",
+      "hq_country": null,
+      "reasoning": "The name \"ClowdTrim Analytics\" closely resembles competitor CloudTrim Inc, and the lead says it builds cloud spend dashboards, which is a similar business. The site was unreachable, so we can't confirm whether it is the same company. Hold it for a human check. The headquarters is unknown, since Portugal is only the country declared on the form.",
+      "evidence": [
+        "Name 'ClowdTrim' is a near-spelling of 'CloudTrim'",
+        "Form message: dashboards showing where a cloud budget goes (similar domain)",
+        "Research status: unreachable; no HQ found",
+        "Declared country Portugal (form only, not verified HQ)"
+      ],
+      "safety_net": [],
+      "overridden": []
+    },
+    "fit": {
+      "size_points": 15,
+      "cloud_points": 25,
+      "bonus_points": 5,
+      "total": 45,
+      "priority": "medium",
+      "size_basis": "1-10 (self-reported, unverified)",
+      "cloud_basis": "unknown",
+      "size_known": true,
+      "cloud_known": false,
+      "bonuses": [
+        "decision maker (Founder)"
+      ],
+      "conflicts": []
+    },
+    "decision": {
+      "route": "CHECK-FIRST",
+      "reason": "Possible competitor: CloudTrim Inc"
+    },
+    "processed_at": "2026-10-01T19:48:35.405225"
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "seconds": 6.5,
+  "llm_requests": 2,
+  "input_tokens": 5156,
+  "output_tokens": 828,
+  "result": {
+    "contact": {
+      "name": "Tom Example",
+      "email": "tom.example@cloud-trim.test",
+      "job_title": "CTO"
+    },
+    "company": {
+      "name": "Cloud Trim Inc.",
+      "website_url": "https://cloud-trim.test",
+      "domain": "cloud-trim.test",
+      "email_domain": "cloud-trim.test",
+      "declared_country": "United States",
+      "declared_size": "51-1000",
+      "declared_spend": ">20k",
+      "declared_providers": [
+        "aws"
+      ],
+      "message": "We would like a second opinion on our AWS bill.",
+      "notes": []
+    },
+    "research": {
+      "status": "unreachable",
+      "final_domain": null,
+      "what_they_do": "",
+      "summary": "",
+      "hq_country": null,
+      "hq_city": null,
+      "size": "unknown",
+      "workload": "unknown",
+      "cloud_providers": [],
+      "other_names": [],
+      "sells_cloud_cost_optimization": false,
+      "stated_pain": false,
+      "evidence": {},
+      "pages_fetched": [],
+      "other_links": []
+    },
+    "compliance": {
+      "competitor": "confirmed_match",
+      "matched_entry": "CloudTrim Inc",
+      "match_type": "spelling_variant",
+      "sanctions": "clear",
+      "hq_country": "United States",
+      "reasoning": "The name \"Cloud Trim Inc.\" matches the listed competitor \"CloudTrim Inc\" apart from spacing. The research found nothing that shows it is a different company, so don't hand it to sales. The AWS bill request may be a competitor probing us. The only HQ evidence is the declared United States, which is not a sanctioned place.",
+      "evidence": [
+        "Company name 'Cloud Trim Inc.' vs listed 'CloudTrim Inc'",
+        "Declared country: United States (form only, not verified by research)",
+        "Website unreachable, business unknown"
+      ],
+      "safety_net": [],
+      "overridden": []
+    },
+    "fit": {
+      "size_points": 50,
+      "cloud_points": 50,
+      "bonus_points": 10,
+      "total": 100,
+      "priority": "high",
+      "size_basis": "51-1000 (self-reported, unverified)",
+      "cloud_basis": ">20k/month (self-reported, unverified)",
+      "size_known": true,
+      "cloud_known": true,
+      "bonuses": [
+        "runs on aws",
+        "decision maker (CTO)"
+      ],
+      "conflicts": []
+    },
+    "decision": {
+      "route": "DO-NOT-ENGAGE",
+      "reason": "Competitor: CloudTrim Inc"
+    },
+    "processed_at": "2026-10-01T19:48:26.330454"
+  }
+}

@@ -51,7 +51,7 @@ uv sync
 copy .env.example .env        # then fill in ANTHROPIC_API_KEY and SLACK_WEBHOOK_URL
 uv run leadqual run leads/01_good_fit.json
 uv run leadqual run leads/01_good_fit.json --no-notify     # without Slack
-uv run leadqual eval          # 24 labelled compliance cases against the live model
+uv run leadqual eval          # 26 labelled compliance cases against the live model
 uv run pytest                 # unit tests; no network, no API key
 ```
 
@@ -78,8 +78,10 @@ Runs differ a little: in an earlier run the web search found Bitrise's headcount
 neutral value.
 
 The screening agent's reasoning for the flagged lead, as the sales rep sees it: *"The
-name "Cloud Trim Inc." is the same as listed competitor "CloudTrim Inc", differing only
-in spacing, so treat it as the competitor and do not hand it to sales."*
+name "Cloud Trim Inc." matches the listed competitor "CloudTrim Inc" apart from spacing.
+The research found nothing that shows it is a different company, so don't hand it to
+sales. The AWS bill request may be a competitor probing us. The only HQ evidence is the
+declared United States, which is not a sanctioned place."*
 
 Bitrise and Rába are real companies used only as research targets: they did not apply,
 the contacts are invented, and Rába's size band is its publicly reported headcount. The
@@ -271,7 +273,7 @@ smoke test, not statistics.
   this repository is fictional.
 - The pipeline is synchronous and processes one lead per run; a real lead with web
   search took 22 seconds (two model calls).
-- Cost: measured token use is in `runs/` and `eval/results/`. An evaluation case
+- Cost: measured token use is in `demo/runs/` and `eval/results/`. An evaluation case
   (one short page, no web search) used about 4,700 input and 1,000 output tokens on
   Sonnet 5.5. A real lead with web search used between about 20,000 and 60,000 input
   tokens, because search results count as input; at list prices that averaged roughly
