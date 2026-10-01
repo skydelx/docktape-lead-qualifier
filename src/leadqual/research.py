@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 MAX_PAGES = 5
 MAX_PAGE_CHARS = 6_000
 MIN_QUOTE_CHARS = 12
+MAX_OTHER_LINKS = 20
 # Pages most likely to say where the company is, how big it is and what it runs.
 USEFUL_PATHS = (
     "about",
@@ -157,7 +158,15 @@ def research(
         stated_pain=findings.stated_pain,
         evidence=evidence,
         pages_fetched=pages_fetched,
+        other_links=_unread_links(pages),
     )
+
+
+def _unread_links(pages: list[Page]) -> list[str]:
+    """Links the site offers beyond what we read, so a later step need not guess URLs."""
+    read = {page.url for page in pages}
+    unread = dict.fromkeys(link for page in pages for link in page.links if link not in read)
+    return list(unread)[:MAX_OTHER_LINKS]
 
 
 def _crawl(start_url: str, fetch: Fetcher) -> list[Page]:

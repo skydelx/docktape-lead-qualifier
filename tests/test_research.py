@@ -161,3 +161,12 @@ def test_declared_values_are_kept_out_of_the_research_prompt():
     research(company, llm, FakeSite(SITE))
 
     assert "Narnia" not in llm.calls[0].prompt
+
+
+def test_links_that_were_not_read_are_passed_on_so_later_steps_need_not_guess():
+    site = SITE | {"https://acme.io/blog": "Blog", "https://acme.io/pricing": "Pricing"}
+
+    result = research(COMPANY, FakeLlm([findings()]), FakeSite(site))
+
+    assert result.pages_fetched == [HOME, ABOUT]
+    assert result.other_links == ["https://acme.io/blog", "https://acme.io/pricing"]

@@ -241,3 +241,24 @@ def test_agent_sees_the_list_and_the_lead_but_as_data():
     assert call.prompt.startswith("<lead>") and call.prompt.endswith("</lead>")
     assert "Retail dashboards." in call.prompt
     assert call.web_search is False
+
+
+@pytest.mark.parametrize(
+    ("other_links", "line"),
+    [
+        (
+            ["https://acme.io/legal", "https://acme.io/blog"],
+            "https://acme.io/legal, https://acme.io/blog",
+        ),
+        ([], "none"),
+    ],
+)
+def test_agent_is_told_which_pages_exist_instead_of_guessing_urls(other_links, line):
+    """Found in the live evaluation: the agent kept requesting /about pages that did not exist."""
+    llm = FakeLlm([verdict()])
+    research = RESEARCHED.model_copy(update={"other_links": other_links})
+
+    screen(company(), research, llm, SETTINGS, NO_SITE)
+
+    assert f"Unread pages on the site: {line}" in llm.calls[0].prompt
+    assert "never guess a URL" in llm.calls[0].system

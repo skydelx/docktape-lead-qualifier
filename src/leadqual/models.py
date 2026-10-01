@@ -146,6 +146,7 @@ class Research(BaseModel):
     stated_pain: bool = False
     evidence: dict[str, Evidence] = {}  # keyed by the field name it supports
     pages_fetched: list[str] = []
+    other_links: list[str] = []  # links seen on the site but not read
 
 
 class Compliance(BaseModel):
