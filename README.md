@@ -273,9 +273,10 @@ smoke test, not statistics.
   search took 22 seconds (two model calls).
 - Cost: measured token use is in `runs/` and `eval/results/`. An evaluation case
   (one short page, no web search) used about 4,700 input and 1,000 output tokens on
-  Sonnet 5.5. A real lead with web search used about 62,000 input tokens, because
-  search results count as input; at list prices that is roughly 10 cents a lead (40 real companies cost about $3.80 in total), and
-  capping or skipping the search is the first lever if that matters.
+  Sonnet 5.5. A real lead with web search used between about 20,000 and 60,000 input
+  tokens, because search results count as input; at list prices that averaged roughly
+  10 cents a lead over 40 real companies, and capping or skipping the search is the
+  first lever if that matters.
 
 ## How I used AI
 
