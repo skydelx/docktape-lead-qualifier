@@ -1,8 +1,8 @@
 {
-  "seconds": 6.5,
-  "llm_requests": 2,
-  "input_tokens": 5156,
-  "output_tokens": 828,
+  "seconds": 3.5,
+  "llm_requests": 1,
+  "input_tokens": 2441,
+  "output_tokens": 383,
   "result": {
     "contact": {
       "name": "Tom Example",
@@ -44,13 +44,13 @@
       "competitor": "confirmed_match",
       "matched_entry": "CloudTrim Inc",
       "match_type": "spelling_variant",
-      "sanctions": "clear",
-      "hq_country": "United States",
-      "reasoning": "The name \"Cloud Trim Inc.\" matches the listed competitor \"CloudTrim Inc\" apart from spacing. The research found nothing that shows it is a different company, so don't hand it to sales. The AWS bill request may be a competitor probing us. The only HQ evidence is the declared United States, which is not a sanctioned place.",
+      "sanctions": "unknown",
+      "hq_country": null,
+      "reasoning": "The name \"Cloud Trim Inc.\" matches the listed competitor \"CloudTrim Inc\" apart from spacing, so I'm treating it as the same company. The site was unreachable, so I couldn't confirm what it does or where it is headquartered. Don't hand this lead to sales.",
       "evidence": [
-        "Company name 'Cloud Trim Inc.' vs listed 'CloudTrim Inc'",
-        "Declared country: United States (form only, not verified by research)",
-        "Website unreachable, business unknown"
+        "Company name: Cloud Trim Inc. vs listed CloudTrim Inc (spacing difference only)",
+        "Research status: unreachable; headquarters unknown",
+        "Form country (United States) is a claim only and was not used as evidence"
       ],
       "safety_net": [],
       "overridden": []
@@ -75,6 +75,6 @@
       "route": "DO-NOT-ENGAGE",
       "reason": "Competitor: CloudTrim Inc"
     },
-    "processed_at": "2026-10-01T19:48:26.330454"
+    "processed_at": "2026-10-02T00:42:40.414086"
   }
 }

@@ -1,8 +1,8 @@
 {
-  "seconds": 23.7,
+  "seconds": 20.9,
   "llm_requests": 2,
-  "input_tokens": 18774,
-  "output_tokens": 1202,
+  "input_tokens": 18916,
+  "output_tokens": 1235,
   "result": {
     "contact": {
       "name": "Cili Example",
@@ -24,23 +24,24 @@
     "research": {
       "status": "ok",
       "final_domain": "raba.hu",
-      "what_they_do": "Rába Járműipari Holding Nyrt. is a Hungarian automotive supplier making axles, chassis components, gears and seat components for trucks, buses, agricultural, road-building and passenger vehicles.",
-      "summary": "Rába is a Győr-based listed automotive parts manufacturer with a physical manufacturing focus and no stated cloud footprint. Cloud cost optimization is likely low priority, since the site gives no evidence of cloud use or scale. Suggested opener: ask how they manage IT and ERP infrastructure costs across their Győr, Sárvár and Mór sites.",
+      "what_they_do": "Rába is a Hungarian automotive supplier making axles, running gear components, chassis and seat components for trucks, buses, agricultural, road-building machines and cars.",
+      "summary": "Rába Járműipari Holding Nyrt. is a Győr-based manufacturer of axles and vehicle components for global OEMs. The site shows no cloud footprint, size or cost pain, so cloud cost optimization is likely a low-priority topic (mostly IT for manufacturing). Suggested opener: ask how they manage IT/cloud spend across the Rába group subsidiaries.",
       "hq_country": "Hungary",
       "hq_city": "Győr",
       "size": "unknown",
       "workload": "low",
       "cloud_providers": [],
       "other_names": [
-        "subsidiaries include Rába Futómű Kft., Rába Járműalkatrész Kft., Rába Jármű Kft., REKARD Kft."
+        "also known as Rába Nyrt.",
+        "subsidiaries include Rába Futómű Kft., Rába Járműalkatrész Kft., Rába Jármű Kft. and Rekard Kft."
       ],
       "sells_cloud_cost_optimization": false,
       "stated_pain": false,
       "evidence": {
         "hq_country": {
           "source": "page",
-          "quote": "Székhely: 9027 Győr, Martin út 1.",
-          "url": "https://raba.hu/kapcsolat/"
+          "quote": "RÁBA Járműipari Holding Nyrt . 9027 Győr, Martin út 1.",
+          "url": "https://raba.hu"
         },
         "workload": {
           "source": "page",
@@ -49,8 +50,8 @@
         },
         "other_names": {
           "source": "page",
-          "quote": "RÁBA Járműipari Holding Nyrt. Leányvállalatok Rába Futómű Kft. központi email cím futomu@raba.hu",
-          "url": "https://raba.hu/kapcsolat/"
+          "quote": "Rába Nyrt. 2026. augusztus 10. – 2026. augusztus 23. Rába Futómű Kft. 2026. augusztus 10. – 2026. augusztus 23.",
+          "url": "https://raba.hu"
         }
       },
       "pages_fetched": [
@@ -88,11 +89,12 @@
       "match_type": "none",
       "sanctions": "clear",
       "hq_country": "Hungary",
-      "reasoning": "Rába is a Hungarian automotive parts maker headquartered in Győr, and it doesn't sell cloud cost optimization. Its name is unrelated to CloudTrim, SpendWise Cloud or RightSize Cloud Co, and Hungary isn't a sanctioned place, so it can go to sales.",
+      "reasoning": "Rába is a Hungarian automotive parts maker headquartered in Győr, with no link to any listed competitor and no cloud cost optimization business. Hungary is not a sanctioned place, so the lead can go to sales.",
       "evidence": [
-        "Székhely: 9027 Győr, Martin út 1.",
-        "Automotive supplier making axles, chassis components and gears",
-        "Sells cloud cost optimization itself: False"
+        "RÁBA Járműipari Holding Nyrt. 9027 Győr, Martin út 1.",
+        "Makes axles and vehicle components for OEMs",
+        "Sells cloud cost optimization: False",
+        "Name does not resemble CloudTrim, SpendWise Cloud or RightSize Cloud Co"
       ],
       "safety_net": [],
       "overridden": []
@@ -116,6 +118,6 @@
       "route": "SALES-READY",
       "reason": "Compliance clear; medium priority (fit 45)"
     },
-    "processed_at": "2026-10-01T19:48:16.260658"
+    "processed_at": "2026-10-02T00:42:32.565922"
   }
 }

@@ -60,7 +60,8 @@ message and saves the full result with token counts under `runs/`.
 
 ## Proof
 
-Four leads were run live, in this order, into a fresh tracker. The spreadsheet is
+Four leads were run live on the final code, in this order, into a fresh tracker. The
+spreadsheet is
 `demo/leads.xlsx`, the full result of each run (findings, sources, reasoning, token
 counts) is in `demo/runs/`, and every one produced a delivered Slack message.
 
@@ -68,20 +69,19 @@ This is the sheet as the rep sees it, in calling order:
 
 | Lead (`leads/`) | Route | Fit | What the rep is told (row and Slack message) |
 |---|---|---|---|
-| `01_good_fit` Bitrise | SALES-READY | 75, high | high cloud workload (quote from the site), runs on AWS, decision maker; size not found, so "partial" data |
+| `01_good_fit` Bitrise | SALES-READY | 100, high | 51-1000 employees (web search), high cloud workload (quote from the site), runs on AWS, decision maker; "full" data |
 | `02_borderline` Rába | SALES-READY | 45, medium | 1001-5000 employees (form), low cloud workload (site): the borderline case, callable but in the middle of the list |
-| `04_near_match` "ClowdTrim Analytics" | CHECK-FIRST | 45, medium | possible competitor: CloudTrim Inc |
+| `04_near_match` "ClowdTrim Analytics" | CHECK-FIRST | 45, medium | possible competitor: CloudTrim Inc; headquarters shown as "Portugal (form, unverified)" |
 | `03_flagged_competitor` "Cloud Trim Inc." | DO-NOT-ENGAGE | 100, high | competitor: CloudTrim Inc. A perfect fit on paper, which is the point: compliance outranks fit |
 
-Runs differ a little: in an earlier run the web search found Bitrise's headcount
-(51-1000) and the score was 100; in this one it did not, and the unknown size got the
-neutral value.
+Runs differ a little: in this run the web search found Bitrise's headcount (51-1000)
+and the score is 100; in an earlier run it did not, the unknown size got the neutral
+value and the score was 75. The route was the same both times.
 
 The screening agent's reasoning for the flagged lead, as the sales rep sees it: *"The
-name "Cloud Trim Inc." matches the listed competitor "CloudTrim Inc" apart from spacing.
-The research found nothing that shows it is a different company, so don't hand it to
-sales. The AWS bill request may be a competitor probing us. The only HQ evidence is the
-declared United States, which is not a sanctioned place."*
+name "Cloud Trim Inc." matches the listed competitor "CloudTrim Inc" apart from spacing,
+so I'm treating it as the same company. The site was unreachable, so I couldn't confirm
+what it does or where it is headquartered. Don't hand this lead to sales."*
 
 Bitrise and Rába are real companies used only as research targets: they did not apply,
 the contacts are invented, and Rába's size band is its publicly reported headcount. The
@@ -282,10 +282,10 @@ smoke test, not statistics.
 - Real companies are only named in clean examples. Every flagged or blocked example in
   this repository is fictional.
 - The pipeline is synchronous and processes one lead per run; a real lead with web
-  search took 22 seconds (two model calls).
+  search took 21 to 29 seconds (two or three model calls).
 - Cost: measured token use is in `demo/runs/` and `eval/results/`. An evaluation case
   (one short page, no web search) used about 5,000 input and 1,000 output tokens on
-  Sonnet 5.5. A real lead with web search used between about 20,000 and 60,000 input
+  Sonnet 5.5. A real lead with web search used between about 20,000 and 85,000 input
   tokens, because search results count as input; at list prices that averaged roughly
   10 cents a lead over 40 real companies, and capping or skipping the search is the
   first lever if that matters.

@@ -1,8 +1,8 @@
 {
-  "seconds": 20.6,
-  "llm_requests": 2,
-  "input_tokens": 62536,
-  "output_tokens": 1292,
+  "seconds": 28.8,
+  "llm_requests": 3,
+  "input_tokens": 85489,
+  "output_tokens": 2167,
   "result": {
     "contact": {
       "name": "Ada Example",
@@ -24,11 +24,11 @@
     "research": {
       "status": "ok",
       "final_domain": "bitrise.io",
-      "what_they_do": "Bitrise sells a mobile DevOps platform (CI/CD, build cache, release management, CodePush) to mobile app teams building iOS and Android apps.",
-      "summary": "Bitrise runs a managed mobile CI/CD platform on Apple silicon build infrastructure, with GCP and AWS hosting options, serving 8,500+ teams. Cost optimization may matter because build compute at that scale is a large cost driver. Suggested opener: \"Bitrise runs 2M+ builds a month, so how do you keep build infrastructure costs under control as usage grows?\"",
+      "what_they_do": "Bitrise sells a mobile DevOps platform (CI/CD, build cache, release management, CodePush, remote dev environments) to mobile app teams.",
+      "summary": "Bitrise provides a managed mobile CI/CD and DevOps platform on Apple silicon infrastructure, used by 8,500+ mobile teams. It runs large build fleets (2M+ builds a month), so infrastructure cost and utilization likely matter to its margins. Suggested opener: \"With millions of builds a month across GCP and AWS, how are you tracking compute cost per build?\"",
       "hq_country": "Hungary",
       "hq_city": "Budapest",
-      "size": "unknown",
+      "size": "51-1000",
       "workload": "high",
       "cloud_providers": [
         "gcp",
@@ -41,7 +41,12 @@
         "hq_country": {
           "source": "search",
           "quote": null,
-          "url": "https://hu.linkedin.com/company/bitrise"
+          "url": "https://www.datanyze.com/companies/bitrise/407132818"
+        },
+        "size": {
+          "source": "search",
+          "quote": null,
+          "url": "https://www.datanyze.com/companies/bitrise/407132818"
         },
         "workload": {
           "source": "page",
@@ -90,24 +95,24 @@
       "match_type": "none",
       "sanctions": "clear",
       "hq_country": "Hungary",
-      "reasoning": "Bitrise sells a mobile CI/CD platform, not cloud cost optimization, and its name doesn't resemble CloudTrim, SpendWise Cloud or RightSize Cloud Co. Its headquarters is in Budapest, Hungary, which isn't a sanctioned place, so you can pass it to sales.",
+      "reasoning": "Bitrise sells a mobile CI/CD platform, not cloud cost optimization, and its name doesn't resemble CloudTrim, SpendWise Cloud or RightSize Cloud Co. Research puts its headquarters in Budapest, Hungary, which isn't a sanctioned place, so it can go to sales.",
       "evidence": [
-        "Sells a mobile DevOps platform (CI/CD, build cache, release management, CodePush)",
+        "Mobile DevOps platform (CI/CD, build cache, release management)",
         "Sells cloud cost optimization itself: False",
-        "Headquarters: Budapest, Hungary (LinkedIn)"
+        "Headquarters: Budapest, Hungary (search, datanyze)"
       ],
       "safety_net": [],
       "overridden": []
     },
     "fit": {
-      "size_points": 25,
+      "size_points": 50,
       "cloud_points": 40,
       "bonus_points": 10,
-      "total": 75,
+      "total": 100,
       "priority": "high",
-      "size_basis": "unknown",
+      "size_basis": "51-1000 (web search)",
       "cloud_basis": "high workload, inferred (website)",
-      "size_known": false,
+      "size_known": true,
       "cloud_known": true,
       "bonuses": [
         "runs on aws",
@@ -117,8 +122,8 @@
     },
     "decision": {
       "route": "SALES-READY",
-      "reason": "Compliance clear; high priority (fit 75)"
+      "reason": "Compliance clear; high priority (fit 100)"
     },
-    "processed_at": "2026-10-01T19:47:49.120123"
+    "processed_at": "2026-10-02T00:42:07.529129"
   }
 }

@@ -1,8 +1,8 @@
 {
-  "seconds": 5.8,
+  "seconds": 3.4,
   "llm_requests": 1,
-  "input_tokens": 2368,
-  "output_tokens": 418,
+  "input_tokens": 2452,
+  "output_tokens": 394,
   "result": {
     "contact": {
       "name": "Luis Example",
@@ -41,15 +41,15 @@
     "compliance": {
       "competitor": "possible_match",
       "matched_entry": "CloudTrim Inc",
-      "match_type": "partial_name",
+      "match_type": "spelling_variant",
       "sanctions": "unknown",
       "hq_country": null,
-      "reasoning": "The name \"ClowdTrim Analytics\" closely resembles competitor CloudTrim Inc, and the lead says it builds cloud spend dashboards, which is a similar business. The site was unreachable, so we can't confirm whether it is the same company. Hold it for a human check. The headquarters is unknown, since Portugal is only the country declared on the form.",
+      "reasoning": "The name \"ClowdTrim Analytics\" closely resembles competitor CloudTrim Inc, and the form says it builds cloud spend dashboards, which is a similar business. Nothing confirms it is the same company, so hold it for manual review. The headquarters is unknown because research failed and only the form says Portugal.",
       "evidence": [
-        "Name 'ClowdTrim' is a near-spelling of 'CloudTrim'",
-        "Form message: dashboards showing where a cloud budget goes (similar domain)",
+        "Name 'ClowdTrim' vs listed 'CloudTrim Inc'",
+        "Form: 'dashboards that show where a cloud budget goes'",
         "Research status: unreachable; no HQ found",
-        "Declared country Portugal (form only, not verified HQ)"
+        "Portugal is declared on the form only"
       ],
       "safety_net": [],
       "overridden": []
@@ -73,6 +73,6 @@
       "route": "CHECK-FIRST",
       "reason": "Possible competitor: CloudTrim Inc"
     },
-    "processed_at": "2026-10-01T19:48:35.405225"
+    "processed_at": "2026-10-02T00:42:47.445445"
   }
 }
