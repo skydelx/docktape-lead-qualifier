@@ -24,4 +24,4 @@ def test_every_known_band_has_points():
 def test_thresholds_are_ordered():
     scoring = load_settings(CONFIG).scoring
 
-    assert 0 < scoring.review_min < scoring.sales_ready_min <= 100
+    assert 0 < scoring.medium_priority_min < scoring.high_priority_min <= 100

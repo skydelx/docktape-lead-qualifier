@@ -16,6 +16,7 @@ from leadqual.models import (
     Contact,
     Decision,
     Fit,
+    Priority,
     Research,
     ResearchStatus,
     Route,
@@ -41,11 +42,13 @@ def score(company: Company, contact: Contact, research: Research, settings: Scor
     cloud_points, cloud_basis, cloud_known = _cloud_axis(company, research, settings)
     bonuses = _bonuses(company, contact, research, settings)
     bonus_points = min(len(bonuses) * settings.bonus_points, settings.max_bonus)
+    total = min(size_points + cloud_points + bonus_points, 100)
     return Fit(
         size_points=size_points,
         cloud_points=cloud_points,
         bonus_points=bonus_points,
-        total=min(size_points + cloud_points + bonus_points, 100),
+        total=total,
+        priority=_priority(total, settings),
         size_basis=size_basis,
         cloud_basis=cloud_basis,
         size_known=size_known,
@@ -53,6 +56,14 @@ def score(company: Company, contact: Contact, research: Research, settings: Scor
         bonuses=bonuses,
         conflicts=_conflicts(company, research),
     )
+
+
+def _priority(total: int, settings: ScoringSettings) -> Priority:
+    if total >= settings.high_priority_min:
+        return Priority.HIGH
+    if total >= settings.medium_priority_min:
+        return Priority.MEDIUM
+    return Priority.LOW
 
 
 def _size_axis(
@@ -124,7 +135,6 @@ class Facts:
     compliance: Compliance
     research: Research
     fit: Fit
-    settings: ScoringSettings
 
 
 @dataclass(frozen=True)
@@ -134,8 +144,10 @@ class Rule:
     reason: Callable[[Facts], str]
 
 
-# Read top to bottom: the first rule that applies decides. Compliance comes before
-# fit, and a lead only becomes sales-ready after every reason to stop has been ruled out.
+# Read top to bottom: the first rule that applies decides. The route only answers
+# "may sales call?": blocked, one question for a person first, or yes. A lead becomes
+# sales-ready after every reason to stop has been ruled out; the fit score then orders
+# the call list, so a mediocre score never sends a lead to a person for a decision.
 RULES: tuple[Rule, ...] = (
     Rule(
         Route.DO_NOT_ENGAGE,
@@ -148,61 +160,44 @@ RULES: tuple[Rule, ...] = (
         lambda f: f"Headquartered in a sanctioned place: {f.compliance.hq_country}",
     ),
     Rule(
-        Route.REVIEW,
+        Route.CHECK_FIRST,
         lambda f: f.compliance.competitor is CompetitorVerdict.NOT_SCREENED,
         lambda f: "Compliance screening did not complete",
     ),
     Rule(
-        Route.REVIEW,
+        Route.CHECK_FIRST,
         lambda f: f.compliance.competitor is CompetitorVerdict.POSSIBLE_MATCH,
         lambda f: f"Possible competitor: {f.compliance.matched_entry or 'sells the same service'}",
     ),
     Rule(
-        Route.REVIEW,
+        Route.CHECK_FIRST,
         lambda f: f.compliance.sanctions is SanctionsVerdict.REVIEW,
         lambda f: f"Headquarters needs a sanctions check: {f.compliance.hq_country}",
     ),
     Rule(
-        Route.REVIEW,
+        Route.CHECK_FIRST,
         lambda f: f.research.status is not ResearchStatus.OK,
         lambda f: f"Could not research the company ({f.research.status})",
     ),
     Rule(
-        Route.REVIEW,
+        Route.CHECK_FIRST,
         lambda f: f.compliance.sanctions is SanctionsVerdict.UNKNOWN,
         lambda f: "Headquarters country not found, so sanctions could not be ruled out",
     ),
     Rule(
-        Route.REVIEW,
+        Route.CHECK_FIRST,
         lambda f: bool(f.fit.conflicts),
         lambda f: f"Form contradicts research: {'; '.join(f.fit.conflicts)}",
     ),
     Rule(
-        Route.REVIEW,
-        lambda f: f.fit.data == "none",
-        lambda f: "Neither company size nor cloud spend is known",
-    ),
-    Rule(
         Route.SALES_READY,
-        lambda f: f.fit.total >= f.settings.sales_ready_min,
-        lambda f: f"Fit {f.fit.total}, compliance clear",
-    ),
-    Rule(
-        Route.REVIEW,
-        lambda f: f.fit.total >= f.settings.review_min,
-        lambda f: f"Borderline fit ({f.fit.total})",
-    ),
-    Rule(
-        Route.LOW_PRIORITY,
         lambda f: True,
-        lambda f: f"Low fit ({f.fit.total})",
+        lambda f: f"Compliance clear; {f.fit.priority} priority (fit {f.fit.total})",
     ),
 )
 
 
-def decide(
-    compliance: Compliance, research: Research, fit: Fit, settings: ScoringSettings
-) -> Decision:
-    facts = Facts(compliance, research, fit, settings)
+def decide(compliance: Compliance, research: Research, fit: Fit) -> Decision:
+    facts = Facts(compliance, research, fit)
     rule = next(rule for rule in RULES if rule.applies(facts))
     return Decision(route=rule.route, reason=rule.reason(facts))

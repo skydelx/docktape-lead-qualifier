@@ -28,10 +28,11 @@ def test_first_lead_creates_a_spreadsheet_a_sales_rep_can_skim(path):
     assert rows(path) == [
         {
             "Route": "SALES-READY",
-            "Why": "Fit 85, compliance clear",
+            "Why": "Compliance clear; high priority (fit 85)",
             "Company": "Acme Analytics",
             "Website": "acme.io",
             "Fit": 85,
+            "Priority": "high",
             "Data": "full",
             "Compliance": "clear",
             "Compliance reasoning": "Unrelated retail analytics company based in Austria.",
@@ -63,11 +64,11 @@ def test_the_same_company_updates_its_row_instead_of_adding_one(path):
     record(make_result(), path)
     record(make_result(company="Beta Corp", domain="beta.example"), path)
 
-    row = record(make_result(route=Route.REVIEW, reason="Borderline fit (55)"), path)
+    row = record(make_result(route=Route.CHECK_FIRST, reason="Possible competitor"), path)
 
     assert row == 2
     assert len(rows(path)) == 2
-    assert rows(path)[0]["Route"] == "REVIEW"
+    assert rows(path)[0]["Route"] == "CHECK-FIRST"
 
 
 def test_another_company_on_the_same_domain_cannot_overwrite_a_row(path):
@@ -77,10 +78,32 @@ def test_another_company_on_the_same_domain_cannot_overwrite_a_row(path):
     )
     record(blocked, path)
 
-    row = record(make_result(company="Victim GmbH"), path)
+    record(make_result(company="Victim GmbH"), path)
 
-    assert row == 3
-    assert [entry["Route"] for entry in rows(path)] == ["DO-NOT-ENGAGE", "SALES-READY"]
+    assert {entry["Company"]: entry["Route"] for entry in rows(path)} == {
+        "Victim GmbH": "SALES-READY",
+        "CloudTrim Inc": "DO-NOT-ENGAGE",
+    }
+
+
+def test_the_sheet_is_kept_in_calling_order_with_blocked_leads_at_the_bottom(path):
+    blocked = make_result(
+        company="CloudTrim Inc", domain="ct.example", route=Route.DO_NOT_ENGAGE, fit=100
+    )
+    record(make_result(company="Medium Co", domain="medium.example", fit=45), path)
+    record(blocked, path)
+    record(
+        make_result(company="Check Co", domain="c.example", route=Route.CHECK_FIRST, fit=70), path
+    )
+    row = record(make_result(company="Top Co", domain="top.example", fit=90), path)
+
+    assert row == 2
+    assert [(entry["Company"], entry["Fit"]) for entry in rows(path)] == [
+        ("Top Co", 90),
+        ("Check Co", 70),  # a lead with an open question keeps its place by score
+        ("Medium Co", 45),
+        ("CloudTrim Inc", 100),  # blocked: still visible, never above a callable lead
+    ]
 
 
 def test_the_same_company_is_recognised_despite_spelling_of_its_legal_form(path):

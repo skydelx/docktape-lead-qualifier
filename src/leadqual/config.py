@@ -41,8 +41,8 @@ class ScoringSettings(BaseModel):
     unknown_axis_points: int
     bonus_points: int
     max_bonus: int
-    sales_ready_min: int
-    review_min: int
+    high_priority_min: int
+    medium_priority_min: int
     preferred_providers: list[CloudProvider]
     decision_maker_keywords: list[str]
 

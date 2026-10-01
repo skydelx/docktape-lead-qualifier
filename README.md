@@ -15,14 +15,23 @@ lead.json
   6 notify       one Slack message per lead
 ```
 
-Every lead ends in exactly one of four routes:
+Two separate answers come out for every lead, as the brief asks: a **fit score** and a
+**compliance flag**.
+
+- The **fit score** (0-100) orders the call list. A rep works down the sheet from the
+  top; nobody has to decide whether a middling lead is "worth it", because its place in
+  the list already says so.
+- The **route** only answers "may sales call?":
 
 | Route | When |
 |---|---|
-| `DO-NOT-ENGAGE` | a competitor, or headquartered in a sanctioned place |
-| `REVIEW` | a real question for a person: possible near-match, unknown headquarters, research failed, form contradicts research, or a borderline fit (40-64) |
-| `SALES-READY` | compliance is clear and fit is 65 or more |
-| `LOW-PRIORITY` | fit below 40; costs nobody any time |
+| `SALES-READY` | compliance is clear; callable, at the place its score gives it |
+| `CHECK-FIRST` | one concrete question for a person before anyone calls: a possible near-match, an unknown headquarters, a site that could not be researched, or a form that contradicts research |
+| `DO-NOT-ENGAGE` | a competitor, or headquartered in a sanctioned place; stays visible at the bottom of the sheet, with the reason |
+
+A lead never goes to a person because of its score. An earlier version sent every
+score between 40 and 64 to review; that made a person decide what a sorted list
+decides for free.
 
 ## Run it
 
@@ -46,12 +55,18 @@ Four leads were run live, in this order, into a fresh tracker. The spreadsheet i
 `demo/leads.xlsx`, the full result of each run (findings, sources, reasoning, token
 counts) is in `demo/runs/`, and every one produced a delivered Slack message.
 
-| Lead (`leads/`) | Route | Why | Fit |
+This is the sheet as the rep sees it, in calling order:
+
+| Lead (`leads/`) | Route | Fit | What the row says |
 |---|---|---|---|
-| `01_good_fit` Bitrise | SALES-READY | compliance clear | 100: 51-1000 employees (web search), high workload (quote from the site), runs on AWS, decision maker |
-| `02_borderline` Rába | REVIEW | borderline fit | 45: 1001-5000 employees (form), low cloud workload (site), decision maker |
-| `03_flagged_competitor` "Cloud Trim Inc." | DO-NOT-ENGAGE | competitor: CloudTrim Inc | 100 on paper, which is the point: compliance outranks fit |
-| `04_near_match` "ClowdTrim Analytics" | REVIEW | possible competitor: CloudTrim Inc | 45 |
+| `01_good_fit` Bitrise | SALES-READY | 75, high | high cloud workload (quote from the site), runs on AWS, decision maker; size not found, so "partial" data |
+| `02_borderline` Rába | SALES-READY | 45, medium | 1001-5000 employees (form), low cloud workload (site): the borderline case, callable but in the middle of the list |
+| `04_near_match` "ClowdTrim Analytics" | CHECK-FIRST | 45, medium | possible competitor: CloudTrim Inc |
+| `03_flagged_competitor` "Cloud Trim Inc." | DO-NOT-ENGAGE | 100, high | competitor: CloudTrim Inc. A perfect fit on paper, which is the point: compliance outranks fit |
+
+Runs differ a little: in an earlier run the web search found Bitrise's headcount
+(51-1000) and the score was 100; in this one it did not, and the unknown size got the
+neutral value.
 
 The screening agent's reasoning for the flagged lead, as the sales rep sees it: *"The
 name "Cloud Trim Inc." is the same as listed competitor "CloudTrim Inc", differing only
@@ -126,7 +141,9 @@ can read and change them.
   the client's cost-optimisation page offers), a decision-maker job title, a stated
   cloud-cost problem. The provider is a bonus, not a gate: other providers lose nothing.
 - **Unknown is not small.** An axis with no data gets a neutral 25 and the row is
-  marked "partial"; if both are unknown the lead goes to a person.
+  marked "partial" (or "none"), so the rep sees how much of the score is evidence.
+- The score is shown with a label, high (65+), medium (40-64) or low, for reading at a
+  glance; the label changes nothing about the route.
 
 There is no "correct" formula; this one is meant to be explainable in one minute and
 easy to tune. `tests/test_scoring.py` pins a sanity ranking of example companies.
@@ -146,14 +163,14 @@ How fuzzy and partial matches come out:
 |---|---|
 | "Cloud Trim Inc.", "CloudTrim Incorporated" (spelling, spacing, legal suffix) | confirmed match -> do not engage |
 | "Nimbus Savings (formerly CloudTrim)", "a SpendWise Cloud company", "SpendWise Cloud EMEA" | confirmed match -> do not engage |
-| "ClowdTrim Analytics", "RightSized Cloud": similar name, similar business, no proof it is the same company | possible match -> review |
+| "ClowdTrim Analytics", "RightSized Cloud": similar name, similar business, no proof it is the same company | possible match -> check first |
 | "Right Size Shoes", "Spendwise Expenses Ltd": similar name, unrelated business | clear, with the near-match noted |
-| sells cloud cost optimisation but is not on the list | possible match -> review (instructed in the prompt; not part of the evaluation below) |
-| a competitor's email domain under another company name | possible match -> review (enforced in code) |
+| sells cloud cost optimisation but is not on the list | possible match -> check first (instructed in the prompt; not part of the evaluation below) |
+| a competitor's email domain under another company name | possible match -> check first (enforced in code) |
 
 Sanctions are a short table in `config.toml` with a one-line reason per place that a
 sales rep can understand. Only the headquarters counts; a customer, a branch office or
-a passing mention does not. An unknown headquarters goes to review, because the brief
+a passing mention does not. An unknown headquarters means check first, because the brief
 asks for the check *before* a lead is marked sales-ready. The table is a simplified,
 dated prototype policy written from the point of view of an EU-based provider, not
 legal advice.
@@ -167,7 +184,7 @@ stricter, never looser:
   a domain is named like one, the contact's email domain belongs to one, or research
   found that the company sells the same service;
 - a listed place named by the form, by research or by the agent itself is always
-  blocked or sent to review; if the form names a blocked country but research found a
+  blocked or marked check-first; if the form names a blocked country but research found a
   different headquarters, a person decides;
 - "clear" with no headquarters named anywhere becomes "unknown";
 - a failed or empty agent answer is never read as "clear".
@@ -204,11 +221,12 @@ smoke test, not statistics.
 - One row per company, keyed by website domain and company name together; a second
   submission from the same company updates its row. The domain alone is not the key,
   because anyone can type someone else's website into a form.
-- Columns a rep can skim: route (colour-coded), why, company, fit (a number, so the
-  sheet sorts), data completeness, compliance flag and reasoning, summary, the basis of
-  the size and cloud scores, headquarters, contact, timestamp.
+- The sheet is kept in calling order: best fit first, blocked leads at the bottom.
+- Columns a rep can skim: route (colour-coded), why, company, fit and priority, data
+  completeness, compliance flag and reasoning, summary, the basis of the size and cloud
+  scores, headquarters, contact, timestamp.
 - The Slack message carries the same facts. Every lead is announced, including
-  low-priority ones; in production those would become a daily digest.
+  low-scoring ones; in production those would become a daily digest.
 - A Slack failure never changes the decision or loses the row, and a spreadsheet that
   is open in Excel does not stop the Slack message; the full result is saved under
   `runs/` before either.
@@ -229,13 +247,13 @@ smoke test, not statistics.
 ## Assumptions and limitations
 
 - If the website cannot be fetched (bot protection, JavaScript-only pages), the lead
-  goes to review; the program does not fall back to web search alone.
+  is marked check-first; the program does not fall back to web search alone.
 - Size bands, thresholds and the sanctions table are my assumptions; all are in
   `config.toml`.
-- Self-reported answers count. A lead that declares a large cloud bill can become
-  sales-ready on "partial" data before research confirms anything; the tracker and the
-  Slack message say "self-reported, unverified". I chose this over sending every such
-  lead to review, because a sales call is cheap and a review queue nobody reads is not.
+- Self-reported answers count. A lead that declares a large cloud bill can reach the
+  top of the list before research confirms anything; the tracker and the Slack message
+  say "self-reported, unverified". I chose this over holding such leads back, because
+  a sales call is cheap and a queue nobody reads is not.
 - A web-search finding keeps the URL the model cited, but the program does not check
   that the URL was among the actual search results.
 - The fetcher's ten-second timeout is per read; there is no overall deadline per site.

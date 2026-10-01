@@ -1,4 +1,4 @@
-"""Step 5: write the result to the Excel tracker a sales rep opens and skims."""
+"""Step 5: write the result to the Excel tracker a sales rep opens and works down."""
 
 from pathlib import Path
 
@@ -17,6 +17,7 @@ COLUMNS: tuple[tuple[str, int], ...] = (
     ("Company", 26),
     ("Website", 24),
     ("Fit", 6),
+    ("Priority", 10),
     ("Data", 9),
     ("Compliance", 34),
     ("Compliance reasoning", 60),
@@ -28,14 +29,17 @@ COLUMNS: tuple[tuple[str, int], ...] = (
     ("Updated", 17),
 )
 HEADERS = [header for header, _ in COLUMNS]
-COMPANY_COLUMN = HEADERS.index("Company") + 1
-WEBSITE_COLUMN = HEADERS.index("Website") + 1
+ROUTE = HEADERS.index("Route")
+COMPANY = HEADERS.index("Company")
+WEBSITE = HEADERS.index("Website")
+FIT = HEADERS.index("Fit")
 ROUTE_COLOURS = {
     Route.SALES_READY: "C6EFCE",
-    Route.REVIEW: "FFEB9C",
+    Route.CHECK_FIRST: "FFEB9C",
     Route.DO_NOT_ENGAGE: "FFC7CE",
-    Route.LOW_PRIORITY: "E7E6E6",
 }
+
+Row = list[str | int]
 
 
 class TrackerError(RuntimeError):
@@ -43,22 +47,30 @@ class TrackerError(RuntimeError):
 
 
 def record(result: Result, path: Path) -> int:
-    """Add the company's row, or update it if the company is already there. Returns the row."""
+    """Add or update the company's row and keep the sheet in calling order. Returns the row."""
     workbook = load_workbook(path) if path.exists() else _new_workbook()
     sheet = workbook[SHEET_NAME]
-    row = _existing_row(sheet, result) or sheet.max_row + 1
-    for column, value in enumerate(_row_values(result), start=1):
-        cell = sheet.cell(row=row, column=column, value=value)
-        cell.alignment = Alignment(wrap_text=True, vertical="top")
-    sheet.cell(row=row, column=1).fill = PatternFill(
-        "solid", start_color=ROUTE_COLOURS[result.decision.route]
-    )
-    sheet.auto_filter.ref = sheet.dimensions
+    rows: list[Row] = [
+        list(row) for row in sheet.iter_rows(min_row=2, values_only=True) if row[COMPANY]
+    ]
+    new_row = _row_values(result)
+    existing = _existing_index(rows, result)
+    if existing is None:
+        rows.append(new_row)
+    else:
+        rows[existing] = new_row
+    rows.sort(key=_calling_order)
+    _rewrite(sheet, rows)
     try:
         workbook.save(path)
     except PermissionError as error:
         raise TrackerError(f"{path} is open in another program; close it and run again") from error
-    return row
+    return rows.index(new_row) + 2
+
+
+def _calling_order(row: Row) -> tuple[bool, int]:
+    """Best fit first; blocked leads stay visible, at the bottom."""
+    return row[ROUTE] == Route.DO_NOT_ENGAGE.value, -int(row[FIT])
 
 
 def _new_workbook() -> Workbook:
@@ -72,27 +84,33 @@ def _new_workbook() -> Workbook:
     return workbook
 
 
-def _existing_row(sheet: Worksheet, result: Result) -> int | None:
+def _rewrite(sheet: Worksheet, rows: list[Row]) -> None:
+    if sheet.max_row > 1:
+        sheet.delete_rows(2, sheet.max_row - 1)
+    for row_number, values in enumerate(rows, start=2):
+        for column, value in enumerate(values, start=1):
+            cell = sheet.cell(row=row_number, column=column, value=value)
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+        colour = ROUTE_COLOURS[Route(values[ROUTE])]
+        sheet.cell(row=row_number, column=ROUTE + 1).fill = PatternFill("solid", start_color=colour)
+    sheet.auto_filter.ref = sheet.dimensions
+
+
+def _existing_index(rows: list[Row], result: Result) -> int | None:
     """One row per company, matched by website domain and company name together.
 
     The domain alone is not enough: anyone can submit someone else's website, and a
     later submission must not overwrite another company's row (or its block).
     """
-    domain = _domain(result)
+    domain = result.company.domain or ""
     name = normalise_name(result.company.name)
-    for row in range(2, sheet.max_row + 1):
-        website = sheet.cell(row=row, column=WEBSITE_COLUMN).value or ""
-        company = str(sheet.cell(row=row, column=COMPANY_COLUMN).value or "")
-        if website == domain and normalise_name(company) == name:
-            return row
+    for index, row in enumerate(rows):
+        if (row[WEBSITE] or "") == domain and normalise_name(str(row[COMPANY])) == name:
+            return index
     return None
 
 
-def _domain(result: Result) -> str:
-    return result.company.domain or ""
-
-
-def _row_values(result: Result) -> list[str | int]:
+def _row_values(result: Result) -> Row:
     contact, research, compliance, fit = (
         result.contact,
         result.research,
@@ -100,12 +118,13 @@ def _row_values(result: Result) -> list[str | int]:
         result.fit,
     )
     title = f", {contact.job_title}" if contact.job_title else ""
-    values: list[str | int] = [
+    values: Row = [
         result.decision.route.value,
         result.decision.reason,
         result.company.name,
-        _domain(result),
+        result.company.domain or "",
         fit.total,
+        fit.priority.value,
         fit.data,
         compliance.flag,
         compliance.reasoning,

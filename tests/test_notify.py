@@ -12,9 +12,9 @@ WEBHOOK = "https://hooks.slack.test/services/T000/B000/XXXX"
 
 def test_message_carries_the_same_facts_as_the_tracker_row():
     assert format_message(make_result()).splitlines() == [
-        "🟢 *SALES-READY* · Fit 85 (full data)",
+        "🟢 *SALES-READY* · Fit 85, high priority (full data)",
         "*Acme Analytics* · acme.io",
-        "*Why:* Fit 85, compliance clear",
+        "*Why:* Compliance clear; high priority (fit 85)",
         "*Summary:* Acme builds retail dashboards on AWS.",
         "*Fit:* size 51-1000 (website) · cloud medium workload, inferred (website)"
         " · bonus: runs on aws, decision maker (CTO)",

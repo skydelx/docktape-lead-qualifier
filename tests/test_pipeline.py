@@ -89,7 +89,7 @@ def test_when_the_model_is_down_every_lead_goes_to_a_person():
     result = qualify(LEAD, settings=SETTINGS, llm=broken, fetch=SITE)
 
     assert result.research.status is ResearchStatus.FAILED
-    assert result.decision.route is Route.REVIEW
+    assert result.decision.route is Route.CHECK_FIRST
     assert result.decision.reason == "Compliance screening did not complete"
 
 

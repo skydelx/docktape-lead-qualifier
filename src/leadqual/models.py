@@ -97,10 +97,17 @@ class SanctionsVerdict(StrEnum):
 
 
 class Route(StrEnum):
+    """Whether sales may call. How soon is the fit score's job, not the route's."""
+
     DO_NOT_ENGAGE = "DO-NOT-ENGAGE"
-    REVIEW = "REVIEW"
+    CHECK_FIRST = "CHECK-FIRST"  # one concrete question for a person before anyone calls
     SALES_READY = "SALES-READY"
-    LOW_PRIORITY = "LOW-PRIORITY"
+
+
+class Priority(StrEnum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
 
 
 class Lead(BaseModel):
@@ -201,6 +208,7 @@ class Fit(BaseModel):
     cloud_points: int
     bonus_points: int
     total: int
+    priority: Priority
     size_basis: str  # e.g. "51-1000 (website)"
     cloud_basis: str
     size_known: bool  # False when the axis fell back to the neutral value

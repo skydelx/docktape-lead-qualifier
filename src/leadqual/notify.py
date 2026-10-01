@@ -7,9 +7,8 @@ from leadqual.models import Result, Route
 TIMEOUT_SECONDS = 10
 ROUTE_EMOJI = {
     Route.SALES_READY: "🟢",
-    Route.REVIEW: "🟡",
+    Route.CHECK_FIRST: "🟡",
     Route.DO_NOT_ENGAGE: "🔴",
-    Route.LOW_PRIORITY: "⚪",
 }
 
 
@@ -28,7 +27,8 @@ def format_message(result: Result) -> str:
     title = f", {contact.job_title}" if contact.job_title else ""
     bonuses = f" · bonus: {', '.join(fit.bonuses)}" if fit.bonuses else ""
     lines = [
-        f"{ROUTE_EMOJI[route]} *{route}* · Fit {fit.total} ({fit.data} data)",
+        f"{ROUTE_EMOJI[route]} *{route}* · Fit {fit.total}, {fit.priority} priority"
+        f" ({fit.data} data)",
         f"*{escape(result.company.name)}* · {escape(result.company.domain or 'no website')}",
         f"*Why:* {escape(result.decision.reason)}",
         f"*Summary:* {escape(research.summary or 'not available')}",

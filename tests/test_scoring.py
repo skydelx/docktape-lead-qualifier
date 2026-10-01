@@ -12,6 +12,7 @@ from leadqual.models import (
     Evidence,
     Fit,
     MatchType,
+    Priority,
     Research,
     ResearchStatus,
     Route,
@@ -210,12 +211,23 @@ def test_sanity_ranking_of_example_companies():
     assert data_heavy_enterprise.total == saas_no_bill_given.total == 75
 
 
+def test_priority_labels_follow_the_configured_thresholds():
+    assert lead(found_size=SizeBand.MID, spend=SpendBand.OVER_20K).priority is Priority.HIGH
+    assert lead(found_size=SizeBand.SMALL, workload=Workload.LOW).priority is Priority.MEDIUM
+    assert lead(found_size=SizeBand.MICRO, workload=Workload.LOW).priority is Priority.LOW
+
+
 def fit_of(total: int, **overrides) -> Fit:
     values = {
         "size_points": 0,
         "cloud_points": 0,
         "bonus_points": 0,
         "total": total,
+        "priority": Priority.HIGH
+        if total >= 65
+        else Priority.MEDIUM
+        if total >= 40
+        else Priority.LOW,
         "size_basis": "",
         "cloud_basis": "",
         "size_known": True,
@@ -245,20 +257,20 @@ CLEAR = compliance()
 
 
 @pytest.mark.parametrize(
-    ("total", "route", "reason"),
+    ("total", "reason"),
     [
-        (100, Route.SALES_READY, "Fit 100, compliance clear"),
-        (65, Route.SALES_READY, "Fit 65, compliance clear"),
-        (64, Route.REVIEW, "Borderline fit (64)"),
-        (40, Route.REVIEW, "Borderline fit (40)"),
-        (39, Route.LOW_PRIORITY, "Low fit (39)"),
-        (0, Route.LOW_PRIORITY, "Low fit (0)"),
+        (100, "Compliance clear; high priority (fit 100)"),
+        (65, "Compliance clear; high priority (fit 65)"),
+        (64, "Compliance clear; medium priority (fit 64)"),
+        (40, "Compliance clear; medium priority (fit 40)"),
+        (39, "Compliance clear; low priority (fit 39)"),
+        (0, "Compliance clear; low priority (fit 0)"),
     ],
 )
-def test_a_clean_lead_is_routed_by_its_score(total, route, reason):
-    decision = decide(CLEAR, OK, fit_of(total), SETTINGS)
+def test_a_clean_lead_is_always_callable_and_the_score_only_orders_the_list(total, reason):
+    decision = decide(CLEAR, OK, fit_of(total))
 
-    assert (decision.route, decision.reason) == (route, reason)
+    assert (decision.route, decision.reason) == (Route.SALES_READY, reason)
 
 
 @pytest.mark.parametrize(
@@ -276,33 +288,33 @@ def test_a_clean_lead_is_routed_by_its_score(total, route, reason):
         ),
         (
             compliance(CompetitorVerdict.NOT_SCREENED, SanctionsVerdict.UNKNOWN),
-            Route.REVIEW,
+            Route.CHECK_FIRST,
             "Compliance screening did not complete",
         ),
         (
             compliance(CompetitorVerdict.POSSIBLE_MATCH, matched_entry="SpendWise Cloud"),
-            Route.REVIEW,
+            Route.CHECK_FIRST,
             "Possible competitor: SpendWise Cloud",
         ),
         (
             compliance(CompetitorVerdict.POSSIBLE_MATCH),
-            Route.REVIEW,
+            Route.CHECK_FIRST,
             "Possible competitor: sells the same service",
         ),
         (
             compliance(sanctions=SanctionsVerdict.REVIEW, hq_country="Belarus"),
-            Route.REVIEW,
+            Route.CHECK_FIRST,
             "Headquarters needs a sanctions check: Belarus",
         ),
         (
             compliance(sanctions=SanctionsVerdict.UNKNOWN, hq_country=None),
-            Route.REVIEW,
+            Route.CHECK_FIRST,
             "Headquarters country not found, so sanctions could not be ruled out",
         ),
     ],
 )
 def test_compliance_findings_stop_even_a_perfect_fit(screening, route, reason):
-    decision = decide(screening, OK, fit_of(100), SETTINGS)
+    decision = decide(screening, OK, fit_of(100))
 
     assert (decision.route, decision.reason) == (route, reason)
 
@@ -312,25 +324,26 @@ def test_compliance_findings_stop_even_a_perfect_fit(screening, route, reason):
     [status for status in ResearchStatus if status is not ResearchStatus.OK],
 )
 def test_a_company_we_could_not_research_goes_to_a_person(status):
-    decision = decide(CLEAR, Research(status=status), fit_of(100), SETTINGS)
+    decision = decide(CLEAR, Research(status=status), fit_of(100))
 
-    assert decision.route is Route.REVIEW
+    assert decision.route is Route.CHECK_FIRST
     assert decision.reason == f"Could not research the company ({status.value})"
 
 
 def test_contradictions_go_to_a_person():
     fit = fit_of(100, conflicts=["form says 5000+ employees, research found 1-10"])
 
-    decision = decide(CLEAR, OK, fit, SETTINGS)
+    decision = decide(CLEAR, OK, fit)
 
-    assert decision.route is Route.REVIEW
+    assert decision.route is Route.CHECK_FIRST
     assert "5000+" in decision.reason
 
 
-def test_a_lead_we_know_nothing_about_goes_to_a_person():
+def test_a_lead_with_no_fit_data_is_ranked_in_the_middle_not_sent_to_a_person():
     fit = fit_of(50, size_known=False, cloud_known=False)
 
-    assert decide(CLEAR, OK, fit, SETTINGS).route is Route.REVIEW
+    assert decide(CLEAR, OK, fit).route is Route.SALES_READY
+    assert fit.data == "none"
 
 
 def test_a_competitor_in_a_sanctioned_country_is_reported_as_a_competitor_first():
@@ -338,7 +351,7 @@ def test_a_competitor_in_a_sanctioned_country_is_reported_as_a_competitor_first(
         CompetitorVerdict.CONFIRMED_MATCH, SanctionsVerdict.BLOCKED, matched_entry="CloudTrim Inc"
     )
 
-    assert decide(both, OK, fit_of(100), SETTINGS).reason == "Competitor: CloudTrim Inc"
+    assert decide(both, OK, fit_of(100)).reason == "Competitor: CloudTrim Inc"
 
 
 def test_blocked_beats_every_softer_outcome():
@@ -346,10 +359,10 @@ def test_blocked_beats_every_softer_outcome():
     blocked_near_match = compliance(CompetitorVerdict.POSSIBLE_MATCH, SanctionsVerdict.BLOCKED)
     unresearched = Research(status=ResearchStatus.UNREACHABLE)
 
-    decision = decide(blocked_near_match, unresearched, fit_of(0), SETTINGS)
+    decision = decide(blocked_near_match, unresearched, fit_of(0))
 
     assert decision.route is Route.DO_NOT_ENGAGE
 
 
 def test_the_rule_table_ends_with_a_catch_all():
-    assert RULES[-1].route is Route.LOW_PRIORITY
+    assert RULES[-1].route is Route.SALES_READY

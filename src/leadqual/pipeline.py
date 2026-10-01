@@ -19,7 +19,7 @@ def qualify(
     findings = research.research(company, llm, fetch)
     screening = compliance.screen(company, findings, llm, settings, fetch)
     fit = scoring.score(company, contact, findings, settings.scoring)
-    decision = scoring.decide(screening, findings, fit, settings.scoring)
+    decision = scoring.decide(screening, findings, fit)
     return Result(
         contact=contact,
         company=company,

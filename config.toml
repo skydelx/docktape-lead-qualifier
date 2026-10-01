@@ -98,8 +98,9 @@ reason = "Targeted sanctions against listed persons and entities; a person shoul
 unknown_axis_points = 25
 bonus_points = 5
 max_bonus = 10
-sales_ready_min = 65
-review_min = 40
+# The score orders the call list; these two lines only label it high / medium / low.
+high_priority_min = 65
+medium_priority_min = 40
 preferred_providers = ["aws", "oracle"]
 decision_maker_keywords = ["cto", "ceo", "cfo", "founder", "owner", "chief", "vp", "head of", "director"]
 
