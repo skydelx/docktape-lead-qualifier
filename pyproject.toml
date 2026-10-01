@@ -1,0 +1,34 @@
+[project]
+name = "leadqual"
+version = "0.1.0"
+description = "Lead qualification prototype: research, compliance screening, fit score, tracker, notification."
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2",
+]
+
+[project.scripts]
+leadqual = "leadqual.__main__:main"
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/leadqual"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
