@@ -30,8 +30,15 @@ def main() -> int:
     arguments = parser.parse_args()
 
     load_dotenv()
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    configure_logging()
     return _run(arguments.lead, arguments.config, notify_sales=not arguments.no_notify)
+
+
+def configure_logging() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    # The HTTP libraries log every request URL at INFO, and the Slack webhook URL is a secret.
+    for http_library in ("httpx", "httpx2", "httpcore"):
+        logging.getLogger(http_library).setLevel(logging.WARNING)
 
 
 def _run(lead_path: Path, config_path: Path, *, notify_sales: bool) -> int:
