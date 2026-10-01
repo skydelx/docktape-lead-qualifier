@@ -104,7 +104,9 @@ class Findings(BaseModel):
     stated_pain: bool
 
 
-def research(company: Company, llm: Llm, fetch: Fetcher = fetch_page) -> Research:
+def research(
+    company: Company, llm: Llm, fetch: Fetcher = fetch_page, *, web_search: bool = True
+) -> Research:
     if company.website_url is None:
         return Research(status=ResearchStatus.NO_WEBSITE)
     pages = _crawl(company.website_url, fetch)
@@ -115,7 +117,10 @@ def research(company: Company, llm: Llm, fetch: Fetcher = fetch_page) -> Researc
     pages_fetched = [page.url for page in pages]
     try:
         findings = llm.run(
-            system=SYSTEM, prompt=_prompt(company, pages), result_type=Findings, web_search=True
+            system=SYSTEM,
+            prompt=_prompt(company, pages),
+            result_type=Findings,
+            web_search=web_search,
         )
     except LlmError as error:
         log.warning("research failed for %s: %s", final_domain, error)

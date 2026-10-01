@@ -1,4 +1,4 @@
-"""Command line entry point: `leadqual run <lead.json>`."""
+"""Command line entry point: `leadqual run <lead.json>` and `leadqual eval`."""
 
 import argparse
 import json
@@ -10,28 +10,39 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from leadqual import notify, tracker
-from leadqual.config import DEFAULT_CONFIG_PATH, load_settings
+from leadqual import evaluation, notify, tracker
+from leadqual.config import DEFAULT_CONFIG_PATH, Settings, load_settings
 from leadqual.intake import InvalidLead
 from leadqual.llm import ClaudeLlm
 from leadqual.models import Result
 from leadqual.pipeline import qualify
 
 RUNS_DIR = Path("runs")
+EVAL_RESULTS_DIR = Path("eval/results")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(prog="leadqual", description=__doc__)
+    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
+    parser.add_argument("--model", help="override the model named in the config")
     commands = parser.add_subparsers(dest="command", required=True)
     run = commands.add_parser("run", help="qualify one lead and record the result")
     run.add_argument("lead", type=Path, help="JSON file with one form submission")
-    run.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
     run.add_argument("--no-notify", action="store_true", help="skip the Slack message")
+    evaluate = commands.add_parser("eval", help="measure the compliance check on labelled cases")
+    evaluate.add_argument("--cases", type=Path, default=evaluation.DEFAULT_CASES_PATH)
     arguments = parser.parse_args()
 
     load_dotenv()
     configure_logging()
-    return _run(arguments.lead, arguments.config, notify_sales=not arguments.no_notify)
+    settings = load_settings(arguments.config)
+    if arguments.model:
+        llm_settings = settings.llm.model_copy(update={"model": arguments.model})
+        settings = settings.model_copy(update={"llm": llm_settings})
+
+    if arguments.command == "eval":
+        return _eval(arguments.cases, settings)
+    return _run(arguments.lead, settings, notify_sales=not arguments.no_notify)
 
 
 def configure_logging() -> None:
@@ -41,8 +52,7 @@ def configure_logging() -> None:
         logging.getLogger(http_library).setLevel(logging.WARNING)
 
 
-def _run(lead_path: Path, config_path: Path, *, notify_sales: bool) -> int:
-    settings = load_settings(config_path)
+def _run(lead_path: Path, settings: Settings, *, notify_sales: bool) -> int:
     webhook_url = os.environ.get("SLACK_WEBHOOK_URL", "")
     if notify_sales and not webhook_url:
         print("SLACK_WEBHOOK_URL is not set (use --no-notify to skip Slack).", file=sys.stderr)
@@ -89,6 +99,36 @@ def _write_run_log(result: Result, llm: ClaudeLlm, seconds: float) -> None:
         "result": result.model_dump(mode="json"),
     }
     path.write_text(json.dumps(log, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _eval(cases_path: Path, settings: Settings) -> int:
+    clients: list[ClaudeLlm] = []
+
+    def make_llm() -> ClaudeLlm:
+        clients.append(ClaudeLlm(settings.llm))
+        return clients[-1]
+
+    started = time.perf_counter()
+    outcomes = evaluation.run_all(evaluation.load_cases(cases_path), make_llm, settings)
+    seconds = time.perf_counter() - started
+    print(f"model: {settings.llm.model}")
+    print(evaluation.report(outcomes))
+
+    EVAL_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    summary = {
+        "model": settings.llm.model,
+        "passed": sum(outcome.passed for outcome in outcomes),
+        "total": len(outcomes),
+        "seconds": round(seconds, 1),
+        "llm_requests": sum(client.usage.requests for client in clients),
+        "input_tokens": sum(client.usage.input_tokens for client in clients),
+        "output_tokens": sum(client.usage.output_tokens for client in clients),
+        "outcomes": [outcome.model_dump(mode="json") for outcome in outcomes],
+    }
+    path = EVAL_RESULTS_DIR / f"{settings.llm.model}.json"
+    path.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"Saved: {path}")
+    return 0 if all(outcome.passed for outcome in outcomes) else 1
 
 
 if __name__ == "__main__":
