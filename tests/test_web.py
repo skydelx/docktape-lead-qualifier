@@ -133,6 +133,16 @@ def test_network_failure_is_a_fetch_error():
         fetch_page("https://acme.io/", client=client_for(handler), resolve=public)
 
 
+def test_a_url_the_http_client_refuses_is_a_fetch_error_not_a_crash():
+    """Found in review: httpx.InvalidURL is not an HTTPError, so it escaped as a traceback."""
+
+    def never(_request: httpx.Request) -> httpx.Response:
+        raise AssertionError("must not be requested")
+
+    with pytest.raises(FetchError, match="InvalidURL"):
+        fetch_page("https://acme.io/a\x01b", client=client_for(never), resolve=public)
+
+
 def test_one_malformed_link_does_not_cost_the_whole_page():
     """Found in review: a single bad href crashed the run before anything was recorded."""
     page = parse_page(

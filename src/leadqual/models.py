@@ -5,7 +5,7 @@ import unicodedata
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 LEGAL_SUFFIXES = frozenset(
     {"inc", "incorporated", "llc", "ltd", "limited", "corp", "corporation", "co", "company"}
@@ -127,6 +127,24 @@ class Lead(BaseModel):
     cloud_providers: list[CloudProvider] = []
     message: str | None = None
 
+    @field_validator("website", "company_size", "monthly_cloud_spend", mode="before")
+    @classmethod
+    def _untouched_field_is_not_answered(cls, value: object, info: ValidationInfo) -> object:
+        """A web form posts "" or null for a field left alone; that must not refuse the lead."""
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return cls.model_fields[info.field_name].default
+        return value
+
+    @field_validator("cloud_providers", mode="before")
+    @classmethod
+    def _providers_as_a_form_sends_them(cls, value: object) -> object:
+        """Nothing ticked arrives as "" or null, and 'AWS' is the same answer as 'aws'."""
+        if value is None or value == "":
+            return []
+        if isinstance(value, list):
+            return [item.strip().lower() if isinstance(item, str) else item for item in value]
+        return value
+
 
 class Contact(BaseModel):
     """Personal data: written to the tracker and the notification, never sent to the LLM."""
@@ -173,6 +191,13 @@ class Research(BaseModel):
     evidence: dict[str, Evidence] = {}  # keyed by the field name it supports
     pages_fetched: list[str] = []
     other_links: list[str] = []  # links seen on the site but not read
+
+    @property
+    def brief(self) -> str:
+        """The summary as the rep reads it, saying so when the website itself was never read."""
+        if self.status is ResearchStatus.SEARCH_ONLY:
+            return f"Website could not be read; from web search only. {self.summary}".strip()
+        return self.summary
 
 
 class Compliance(BaseModel):

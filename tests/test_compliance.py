@@ -1,3 +1,4 @@
+from contextlib import suppress
 from itertools import product
 from pathlib import Path
 
@@ -21,6 +22,8 @@ from leadqual.models import (
 SETTINGS = load_settings(Path(__file__).parent.parent / "config.toml")
 NO_SITE = FakeSite({})
 RESEARCHED = Research(status=ResearchStatus.OK, final_domain="acme.io")
+# Research that found a sourced headquarters: only then can the sanctions question be clear.
+LOCATED = RESEARCHED.model_copy(update={"hq_country": "Austria", "hq_city": "Vienna"})
 
 
 def verdict(
@@ -72,7 +75,7 @@ def test_names_are_compared_without_spacing_punctuation_or_legal_suffix(name, no
 
 
 def test_agent_verdict_is_passed_through_when_no_safety_rule_applies():
-    result = screened(company(), verdict())
+    result = screened(company(), verdict(), LOCATED)
 
     assert result.competitor is CompetitorVerdict.CLEAR
     assert result.sanctions is SanctionsVerdict.CLEAR
@@ -96,7 +99,7 @@ def test_exact_competitor_name_is_confirmed_even_if_the_agent_was_talked_out_of_
 def test_anything_short_of_an_exact_name_is_left_to_the_agent(name):
     agent_says = verdict(CompetitorVerdict.POSSIBLE_MATCH)
 
-    result = screened(company(name), agent_says)
+    result = screened(company(name), agent_says, LOCATED)
 
     assert result.competitor is CompetitorVerdict.POSSIBLE_MATCH
     assert result.safety_net == []
@@ -173,7 +176,7 @@ def test_a_company_selling_the_same_service_is_never_simply_clear():
     ],
 )
 def test_innocent_lookalikes_are_not_touched_by_the_safety_net(name):
-    result = screened(company(name), verdict())
+    result = screened(company(name), verdict(), LOCATED)
 
     assert result.competitor is CompetitorVerdict.CLEAR
     assert result.safety_net == []
@@ -221,7 +224,7 @@ def test_review_level_place_raises_the_verdict_but_never_lowers_it(agent_says, e
 
 @pytest.mark.parametrize(
     ("hq_country", "hq_city"),
-    [("Ukraine", "Kyiv"), ("Republic of Korea", "Seoul"), ("Albania", "Tirana"), (None, None)],
+    [("Ukraine", "Kyiv"), ("Republic of Korea", "Seoul"), ("Albania", "Tirana")],
 )
 def test_unlisted_places_leave_the_agent_verdict_alone(hq_country, hq_city):
     research = RESEARCHED.model_copy(update={"hq_country": hq_country, "hq_city": hq_city})
@@ -245,7 +248,51 @@ def test_clear_without_any_named_headquarters_becomes_unknown():
     result = screened(company(), verdict(hq_country=None))
 
     assert result.sanctions is SanctionsVerdict.UNKNOWN
-    assert "no headquarters was named" in result.safety_net[0]
+    assert "no headquarters was found" in result.safety_net[0]
+
+
+@pytest.mark.parametrize("agent_names", ["Germany", "Federal Republic of Germany", None])
+def test_a_country_typed_into_the_form_does_not_clear_the_sanctions_question(agent_names):
+    """Found in review: with nothing but the form to go on, the agent answered both ways."""
+    lead = company(declared_country="Germany")
+
+    result = screened(lead, verdict(hq_country=agent_names))
+
+    assert result.sanctions is SanctionsVerdict.UNKNOWN
+    assert "the only headquarters named is the form's own (Germany)" in result.safety_net[0]
+    assert result.overridden == ["sanctions"]
+
+
+class ReadingLlm:
+    """An agent that asks its tool for one page before it answers."""
+
+    def __init__(self, url: str, answer: Verdict) -> None:
+        self.url = url
+        self.answer = answer
+
+    def run(self, *, system, prompt, result_type, tools=(), web_search=False) -> Verdict:
+        with suppress(ToolError):
+            tools[0].handler({"url": self.url})
+        return self.answer
+
+
+def test_a_page_the_agent_read_itself_can_settle_the_headquarters():
+    site = FakeSite({"https://acme.io/imprint": "Acme GmbH, Vienna, Austria"})
+    llm = ReadingLlm("https://acme.io/imprint", verdict())
+
+    result = screen(company(declared_country="Austria"), RESEARCHED, llm, SETTINGS, site)
+
+    assert result.sanctions is SanctionsVerdict.CLEAR
+    assert result.safety_net == []
+
+
+def test_a_page_the_agent_asked_for_but_did_not_get_settles_nothing():
+    site = FakeSite({"https://acme.io/": "Home"})
+    llm = ReadingLlm("https://acme.io/imprint", verdict())
+
+    result = screen(company(declared_country="Austria"), RESEARCHED, llm, SETTINGS, site)
+
+    assert result.sanctions is SanctionsVerdict.UNKNOWN
 
 
 def test_blocked_country_on_the_form_that_research_contradicts_goes_to_a_person():

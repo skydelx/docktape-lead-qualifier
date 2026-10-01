@@ -1,7 +1,7 @@
 import pytest
 
 from leadqual.intake import InvalidLead, accept, normalise_website
-from leadqual.models import CloudProvider, SizeBand
+from leadqual.models import CloudProvider, SizeBand, SpendBand
 
 BASE = {
     "name": "Ada Example",
@@ -42,6 +42,39 @@ def test_optional_fields_are_parsed():
 
     assert company.declared_size is SizeBand.MID
     assert company.declared_providers == [CloudProvider.AWS, CloudProvider.GCP]
+
+
+@pytest.mark.parametrize(
+    "untouched",
+    [
+        {"company_size": ""},
+        {"company_size": None},
+        {"monthly_cloud_spend": "  "},
+        {"cloud_providers": None},
+        {"cloud_providers": ""},
+        {"job_title": "", "country": "", "message": ""},
+    ],
+)
+def test_a_field_the_form_posts_empty_does_not_refuse_the_lead(untouched):
+    """Found in review: an untouched dropdown arrives as "" and rejected the whole lead."""
+    _, company = accept(BASE | untouched)
+
+    assert company.declared_size is SizeBand.UNKNOWN
+    assert company.declared_spend is SpendBand.UNKNOWN
+    assert company.declared_providers == []
+
+
+def test_a_missing_website_value_is_the_same_as_no_website():
+    _, company = accept(BASE | {"website": None})
+
+    assert company.domain is None
+    assert "no usable website submitted" in company.notes
+
+
+def test_provider_names_are_accepted_in_any_case():
+    _, company = accept(BASE | {"cloud_providers": ["AWS", " Oracle "]})
+
+    assert company.declared_providers == [CloudProvider.AWS, CloudProvider.ORACLE]
 
 
 @pytest.mark.parametrize(

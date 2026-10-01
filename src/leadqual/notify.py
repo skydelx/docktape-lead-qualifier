@@ -31,7 +31,7 @@ def format_message(result: Result) -> str:
         f" ({fit.data} data)",
         f"*{escape(result.company.name)}* · {escape(result.company.domain or 'no website')}",
         f"*Why:* {escape(result.decision.reason)}",
-        f"*Summary:* {escape(research.summary or 'not available')}",
+        f"*Summary:* {escape(research.brief or 'not available')}",
         f"*Fit:* size {escape(fit.size_basis)} · cloud {escape(fit.cloud_basis)}{escape(bonuses)}",
         f"*Compliance:* {escape(compliance.flag)}. {escape(compliance.reasoning)}",
         f"*Contact:* {escape(contact.name + title)} · {escape(contact.email)}",

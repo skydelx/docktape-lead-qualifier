@@ -112,8 +112,8 @@ def _get(client: httpx.Client, url: str) -> tuple[int, httpx.Headers, str]:
             encoding = response.encoding or "utf-8"
             body = b"".join(chunks)[:MAX_BYTES].decode(encoding, errors="replace")
             return response.status_code, response.headers, body
-    except httpx.HTTPError as error:
-        raise FetchError(f"request to {url} failed: {type(error).__name__}") from error
+    except (httpx.HTTPError, httpx.InvalidURL) as error:  # InvalidURL is not an HTTPError
+        raise FetchError(f"request to {url!r} failed: {type(error).__name__}") from error
 
 
 def parse_page(url: str, html: str) -> Page:

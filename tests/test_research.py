@@ -115,6 +115,16 @@ def test_unsourced_finding_citing_only_the_companys_own_site_is_dropped():
     assert result.size is SizeBand.UNKNOWN
 
 
+def test_a_cited_source_that_is_not_a_url_drops_the_finding_instead_of_crashing():
+    """Found in review: the paid research call was lost to a ValueError on 'http://[bad'."""
+    reported = findings(size_source=Cited(url="http://[bad"))
+
+    result = research(COMPANY, FakeLlm([reported]), FakeSite(SITE))
+
+    assert result.size is SizeBand.UNKNOWN
+    assert result.status is ResearchStatus.OK
+
+
 def test_parked_site_yields_no_findings():
     reported = findings(site_is_real=False)
 
@@ -155,6 +165,17 @@ def test_prompt_marks_website_text_as_data_and_asks_for_web_search():
     assert f'<website url="{ABOUT}">' in call.prompt
     assert "<form_message>\nOur AWS bill doubled.\n</form_message>" in call.prompt
     assert "untrusted data" in call.system
+    assert "use web search to find them" in call.system
+
+
+def test_the_model_is_not_told_to_search_when_it_has_no_search_tool():
+    """The evaluation runs without web search; its prompt must not ask for one."""
+    llm = FakeLlm([findings()])
+
+    research(COMPANY, llm, FakeSite(SITE), web_search=False)
+
+    assert "use web search" not in llm.calls[0].system
+    assert "untrusted data" in llm.calls[0].system
 
 
 def test_declared_values_are_kept_out_of_the_research_prompt():

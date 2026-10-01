@@ -1,13 +1,15 @@
 """Step 5: write the result to the Excel tracker a sales rep opens and works down."""
 
 from pathlib import Path
+from zipfile import BadZipFile
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.utils.exceptions import InvalidFileException
 from openpyxl.worksheet.worksheet import Worksheet
 
-from leadqual.models import Result, Route, normalise_name
+from leadqual.models import Result, Route, SanctionsVerdict, normalise_name
 
 SHEET_NAME = "Leads"
 # (header, column width)
@@ -39,7 +41,8 @@ ROUTE_COLOURS = {
     Route.DO_NOT_ENGAGE: "FFC7CE",
 }
 
-Row = list[str | int]
+# A cell as read back from the sheet: a rep may have typed over it or emptied it.
+Row = list[str | int | None]
 
 
 class TrackerError(RuntimeError):
@@ -48,8 +51,11 @@ class TrackerError(RuntimeError):
 
 def record(result: Result, path: Path) -> int:
     """Add or update the company's row and keep the sheet in calling order. Returns the row."""
-    workbook = load_workbook(path) if path.exists() else _new_workbook()
-    sheet = workbook[SHEET_NAME]
+    try:
+        workbook = load_workbook(path) if path.exists() else _new_workbook()
+        sheet = workbook[SHEET_NAME]
+    except (OSError, KeyError, ValueError, BadZipFile, InvalidFileException) as error:
+        raise TrackerError(f"{path} could not be opened as the lead tracker: {error}") from error
     rows: list[Row] = [
         list(row) for row in sheet.iter_rows(min_row=2, values_only=True) if row[COMPANY]
     ]
@@ -58,6 +64,8 @@ def record(result: Result, path: Path) -> int:
     if existing is None:
         rows.append(new_row)
     else:
+        # Anything a rep typed to the right of our columns stays with the company's row.
+        new_row = new_row + rows[existing][len(new_row) :]
         rows[existing] = new_row
     rows.sort(key=_calling_order)
     _rewrite(sheet, rows)
@@ -70,7 +78,15 @@ def record(result: Result, path: Path) -> int:
 
 def _calling_order(row: Row) -> tuple[bool, int]:
     """Best fit first; blocked leads stay visible, at the bottom."""
-    return row[ROUTE] == Route.DO_NOT_ENGAGE.value, -int(row[FIT])
+    return row[ROUTE] == Route.DO_NOT_ENGAGE.value, -_fit(row)
+
+
+def _fit(row: Row) -> int:
+    """The row's fit; one a rep typed over sorts below every scored lead instead of crashing."""
+    try:
+        return int(row[FIT])
+    except (TypeError, ValueError):
+        return -1
 
 
 def _new_workbook() -> Workbook:
@@ -91,8 +107,10 @@ def _rewrite(sheet: Worksheet, rows: list[Row]) -> None:
         for column, value in enumerate(values, start=1):
             cell = sheet.cell(row=row_number, column=column, value=value)
             cell.alignment = Alignment(wrap_text=True, vertical="top")
-        colour = ROUTE_COLOURS[Route(values[ROUTE])]
-        sheet.cell(row=row_number, column=ROUTE + 1).fill = PatternFill("solid", start_color=colour)
+        colour = ROUTE_COLOURS.get(values[ROUTE])  # None for a route cell a rep typed over
+        if colour is not None:
+            route_cell = sheet.cell(row=row_number, column=ROUTE + 1)
+            route_cell.fill = PatternFill("solid", start_color=colour)
     sheet.auto_filter.ref = sheet.dimensions
 
 
@@ -128,14 +146,23 @@ def _row_values(result: Result) -> Row:
         fit.data,
         compliance.flag,
         compliance.reasoning,
-        research.summary,
+        research.brief,
         fit.size_basis,
         fit.cloud_basis,
-        compliance.hq_country or research.hq_country or result.company.declared_country or "",
+        _headquarters(result),
         f"{contact.name}{title} <{contact.email}>",
         result.processed_at.strftime("%Y-%m-%d %H:%M"),
     ]
     return [_safe(value) for value in values]
+
+
+def _headquarters(result: Result) -> str:
+    """Where the company is based, and whose word that is."""
+    found = result.compliance.hq_country or result.research.hq_country
+    if found and result.compliance.sanctions is not SanctionsVerdict.UNKNOWN:
+        return found
+    declared = result.company.declared_country
+    return f"{declared} (form, unverified)" if declared else ""
 
 
 def _safe(value: str | int) -> str | int:

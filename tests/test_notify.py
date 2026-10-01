@@ -4,7 +4,14 @@ import httpx
 import pytest
 
 from fakes import make_result
-from leadqual.models import CompetitorVerdict, Compliance, MatchType, Route, SanctionsVerdict
+from leadqual.models import (
+    CompetitorVerdict,
+    Compliance,
+    MatchType,
+    ResearchStatus,
+    Route,
+    SanctionsVerdict,
+)
 from leadqual.notify import NotifyError, format_message, send
 
 WEBHOOK = "https://hooks.slack.test/services/T000/B000/XXXX"
@@ -40,6 +47,14 @@ def test_flagged_lead_says_why_and_tells_the_rep_to_stay_away():
     assert message.startswith("🔴 *DO-NOT-ENGAGE*")
     assert "*Compliance:* FLAGGED: competitor (CloudTrim Inc). The site says" in message
     assert message.endswith("*Do not contact this lead.*")
+
+
+def test_message_says_when_the_website_itself_was_never_read():
+    message = format_message(make_result(research_status=ResearchStatus.SEARCH_ONLY))
+
+    assert (
+        "*Summary:* Website could not be read; from web search only. Acme builds retail" in message
+    )
 
 
 def test_missing_job_title_and_website_are_handled():

@@ -34,12 +34,14 @@ def make_result(
     summary: str = "Acme builds retail dashboards on AWS.",
     compliance: Compliance | None = None,
     job_title: str | None = "CTO",
+    declared_country: str | None = None,
+    research_status: ResearchStatus = ResearchStatus.OK,
 ) -> Result:
     """A finished pipeline result, for testing the tracker and the notification."""
     return Result(
         contact=Contact(name="Ada Example", email="ada@acme.io", job_title=job_title),
-        company=Company(name=company, domain=domain),
-        research=Research(status=ResearchStatus.OK, summary=summary, hq_country="Austria"),
+        company=Company(name=company, domain=domain, declared_country=declared_country),
+        research=Research(status=research_status, summary=summary, hq_country="Austria"),
         compliance=compliance
         or Compliance(
             competitor=CompetitorVerdict.CLEAR,
