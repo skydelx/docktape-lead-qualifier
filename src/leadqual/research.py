@@ -37,6 +37,13 @@ USEFUL_PATHS = (
     "jobs",
     "team",
     "customers",
+    # The same pages on Hungarian and German sites, where many of the leads will come from.
+    "rolunk",
+    "kapcsolat",
+    "impresszum",
+    "karrier",
+    "ueber-uns",
+    "kontakt",
 )
 
 Fetcher = Callable[[str], Page]

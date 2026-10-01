@@ -31,8 +31,8 @@ Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
 ```
 uv sync
 copy .env.example .env        # then fill in ANTHROPIC_API_KEY and SLACK_WEBHOOK_URL
-uv run leadqual run leads/example.json
-uv run leadqual run leads/example.json --no-notify     # without Slack
+uv run leadqual run leads/01_good_fit.json
+uv run leadqual run leads/01_good_fit.json --no-notify     # without Slack
 uv run leadqual eval          # 24 labelled compliance cases against the live model
 uv run pytest                 # unit tests; no network, no API key
 ```
@@ -42,8 +42,26 @@ message and saves the full result with token counts under `runs/`.
 
 ## Proof
 
-> To be filled in from the live demo run: the three tracker rows (clean good fit,
-> borderline, flagged by compliance) and the three Slack screenshots, under `demo/`.
+Four leads were run live, in this order, into a fresh tracker. The spreadsheet is
+`demo/leads.xlsx`, the full result of each run (findings, sources, reasoning, token
+counts) is in `demo/runs/`, and every one produced a delivered Slack message.
+
+| Lead (`leads/`) | Route | Why | Fit |
+|---|---|---|---|
+| `01_good_fit` Bitrise | SALES-READY | compliance clear | 100: 51-1000 employees (web search), high workload (quote from the site), runs on AWS, decision maker |
+| `02_borderline` Rába | REVIEW | borderline fit | 45: 1001-5000 employees (form), low cloud workload (site), decision maker |
+| `03_flagged_competitor` "Cloud Trim Inc." | DO-NOT-ENGAGE | competitor: CloudTrim Inc | 100 on paper, which is the point: compliance outranks fit |
+| `04_near_match` "ClowdTrim Analytics" | REVIEW | possible competitor: CloudTrim Inc | 45 |
+
+The screening agent's reasoning for the flagged lead, as the sales rep sees it: *"The
+name "Cloud Trim Inc." is the same as listed competitor "CloudTrim Inc", differing only
+in spacing, so treat it as the competitor and do not hand it to sales."*
+
+Bitrise and Rába are real companies used only as research targets: they did not apply,
+the contacts are invented, and Rába's size band is its publicly reported headcount. The
+two flagged leads are fictional, on `.test` domains that cannot resolve.
+
+> Slack screenshots: to be added under `demo/` before submission.
 
 ## Decisions, and why
 
