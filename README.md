@@ -290,6 +290,34 @@ smoke test, not statistics.
   10 cents a lead over 40 real companies, and capping or skipping the search is the
   first lever if that matters.
 
+## At scale: a cheaper model first (measured, not built)
+
+The pipeline uses one strong model for everything, which is the simplest thing that
+works. At real volume I would put a cheap decision model in front of it, and I measured
+that idea before building (`experiments/decision_model/`): 36 fictional cases with the
+labels fixed in advance, covering four small typed decisions the pipeline makes
+(competitor identity 14, blocked headquarters 10, cloud workload 8, parked site 4), one
+run, all three models through OpenRouter.
+
+| Model | Correct | Average time | Cost of the 36 decisions |
+|---|---|---|---|
+| Jev 1.13 (TypeSafe; a decision model that returns a category and a confidence) | 34/36 | 0.44 s | $0.0007 |
+| Claude Haiku 4.5 | 34/36 | 1.64 s | $0.0108 |
+| Claude Sonnet 5.5 (low reasoning effort) | 36/36 | 1.93 s | $0.0321 |
+
+Both of Jev's misses came with a confidence below 0.80, and all 28 of its answers at or
+above 0.80 were right. A cascade (the cheap model decides when it is confident, the
+strong model takes the rest) would therefore have scored 36/36 on this set with the
+cheap model making 28 of the 36 decisions. One of the two misses was an instruction
+planted in the page text on a headquarters case, so a compliance decision should never
+rest on that model alone; the code safety net would stay exactly as it is.
+
+I left the cascade out on purpose. For a prototype a second model and a second vendor
+are complexity without a benefit, and these decisions are not where the money goes: the
+screening call costs about a cent a lead (`demo/runs/03_flagged_competitor.json`), the
+research with web search most of the rest, and a decision model does not search or
+write the summary. Thirty-six cases of my own in a single run are a signal, not proof.
+
 ## How I used AI
 
 I built this with Claude Code (Claude Opus 5.5), and it wrote all of the code and
@@ -297,8 +325,8 @@ the tests. My part was the decisions: reading the brief closely, looking at what
 the client publishes about its customers and service, and settling scope, the form
 fields, how fit and compliance should behave, and what to leave out, before any code
 was written. The build then went module by module in small commits, with `ruff` and
-`pytest` as gates. An independent Claude agent that had not seen the build reviewed the
-code against the brief, and the live evaluation above, not opinion, decided which model
+`pytest` as gates. Twice, an independent Claude agent that had not seen the build reviewed
+the repository against the brief, and the live evaluation above, not opinion, decided which model
 the pipeline uses. At runtime the pipeline itself calls Claude twice per lead: once to
 turn the website into cited findings, once for the screening.
 
@@ -310,5 +338,7 @@ src/leadqual/   intake, web, research, compliance, scoring, tracker, notify, llm
 config.toml     do-not-engage list, sanctions table, scoring numbers, model
 eval/           labelled compliance cases and results per model
 leads/          example submissions
+demo/           proof: the tracker and the full result of the four live runs
+experiments/    the side measurement of a cheaper decision model (not used by the pipeline)
 tests/          unit tests (fake model, in-memory website)
 ```
