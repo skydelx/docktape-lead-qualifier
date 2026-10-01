@@ -59,6 +59,7 @@ class CompetitorVerdict(StrEnum):
     CONFIRMED_MATCH = "confirmed_match"
     POSSIBLE_MATCH = "possible_match"
     CLEAR = "clear"
+    NOT_SCREENED = "not_screened"  # the screening agent failed; never treated as clear
 
 
 class MatchType(StrEnum):

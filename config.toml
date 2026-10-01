@@ -35,9 +35,9 @@ reason = "EU sanctions prohibit providing IT consultancy services to companies e
 
 [[sanctions]]
 place = "Crimea / occupied regions of Ukraine"
-aliases = ["Crimea", "Sevastopol", "Simferopol", "Donetsk", "Luhansk", "Kherson", "Zaporizhzhia"]
+aliases = ["Crimea", "Sevastopol", "Simferopol", "Donetsk", "Luhansk"]
 level = "blocked"
-reason = "EU and US sanctions prohibit services to companies in the occupied regions of Ukraine."
+reason = "EU and US sanctions prohibit services to companies in Crimea and the occupied parts of the Donetsk, Luhansk, Kherson and Zaporizhzhia regions."
 
 [[sanctions]]
 place = "Iran"
