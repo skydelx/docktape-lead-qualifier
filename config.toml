@@ -36,22 +36,29 @@ level = "blocked"
 reason = "EU sanctions prohibit providing IT consultancy services to companies established in Russia."
 
 [[sanctions]]
-place = "Crimea / occupied regions of Ukraine"
-aliases = ["Crimea", "Sevastopol", "Simferopol", "Donetsk", "Luhansk"]
+place = "Crimea"
+aliases = ["Sevastopol", "Simferopol", "Yalta", "Kerch"]
 level = "blocked"
-reason = "EU and US sanctions prohibit services to companies in Crimea and the occupied parts of the Donetsk, Luhansk, Kherson and Zaporizhzhia regions."
+reason = "EU and US sanctions prohibit services to companies in Crimea and Sevastopol."
 
 [[sanctions]]
 place = "Iran"
-aliases = ["Islamic Republic of Iran"]
+aliases = ["Islamic Republic of Iran", "Tehran"]
 level = "blocked"
 reason = "Iran is under broad EU and US sanctions; we do not engage."
 
 [[sanctions]]
 place = "North Korea"
-aliases = ["DPRK", "Democratic People's Republic of Korea"]
+aliases = ["DPRK", "DPR Korea", "Democratic People's Republic of Korea", "Korea, Democratic People's Republic of", "Korea (North)", "Pyongyang"]
 level = "blocked"
 reason = "North Korea is under the most restrictive EU and US sanctions; we do not engage."
+
+# Only parts of these regions are occupied, so a match is a question for a person.
+[[sanctions]]
+place = "Donetsk, Luhansk, Kherson or Zaporizhzhia region of Ukraine"
+aliases = ["Donetsk", "Luhansk", "Kherson", "Zaporizhzhia", "Mariupol", "Melitopol"]
+level = "review"
+reason = "Sanctions apply to the occupied parts of these regions; a person should check where the company actually is."
 
 [[sanctions]]
 place = "Belarus"
@@ -67,7 +74,7 @@ reason = "Under a US embargo but not an EU one; a person should check before eng
 
 [[sanctions]]
 place = "Syria"
-aliases = []
+aliases = ["Syrian Arab Republic"]
 level = "review"
 reason = "Most sanctions were lifted in 2025, but targeted ones remain; a person should check."
 

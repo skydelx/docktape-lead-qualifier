@@ -60,7 +60,17 @@ def test_website_is_normalised_to_a_bare_domain(website, domain):
 
 @pytest.mark.parametrize(
     "website",
-    ["", "   ", "n/a", "ftp://acme.io", "https://www.linkedin.com/company/acme", "http://[bad"],
+    [
+        "",
+        "   ",
+        "n/a",
+        "ftp://acme.io",
+        "https://www.linkedin.com/company/acme",
+        "http://[bad",
+        "https://a.b*c",  # characters no host name can contain
+        'https://acme.io"><script>',
+        "https://acme..io",
+    ],
 )
 def test_unusable_website_is_rejected_but_the_lead_is_kept(website):
     _, company = accept(BASE | {"website": website})

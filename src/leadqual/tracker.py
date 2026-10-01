@@ -7,7 +7,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
-from leadqual.models import Result, Route
+from leadqual.models import Result, Route, normalise_name
 
 SHEET_NAME = "Leads"
 # (header, column width)
@@ -73,13 +73,17 @@ def _new_workbook() -> Workbook:
 
 
 def _existing_row(sheet: Worksheet, result: Result) -> int | None:
-    """One row per company: matched by website domain, or by name when there is no website."""
+    """One row per company, matched by website domain and company name together.
+
+    The domain alone is not enough: anyone can submit someone else's website, and a
+    later submission must not overwrite another company's row (or its block).
+    """
     domain = _domain(result)
-    name = result.company.name.casefold()
+    name = normalise_name(result.company.name)
     for row in range(2, sheet.max_row + 1):
         website = sheet.cell(row=row, column=WEBSITE_COLUMN).value or ""
         company = str(sheet.cell(row=row, column=COMPANY_COLUMN).value or "")
-        if website == domain and (domain or company.lstrip("'").casefold() == name):
+        if website == domain and normalise_name(company) == name:
             return row
     return None
 

@@ -26,6 +26,8 @@ def findings(**overrides) -> Findings:
         "workload_source": Cited(quote="builds data dashboards for retailers", url=HOME),
         "cloud_providers": [CloudProvider.AWS],
         "providers_source": Cited(quote="We run entirely on AWS", url=ABOUT),
+        "other_names": [],
+        "names_source": Cited(),
         "sells_cloud_cost_optimization": False,
         "stated_pain": False,
     }
@@ -161,6 +163,21 @@ def test_declared_values_are_kept_out_of_the_research_prompt():
     research(company, llm, FakeSite(SITE))
 
     assert "Narnia" not in llm.calls[0].prompt
+
+
+def test_former_names_and_parents_are_kept_only_with_a_real_quote():
+    site = SITE | {ABOUT: SITE[ABOUT] + " Acme Analytics was founded as Retail Lens in 2019."}
+    quoted = findings(
+        other_names=["formerly Retail Lens"],
+        names_source=Cited(quote="was founded as Retail Lens in 2019", url=ABOUT),
+    )
+    unquoted = findings(other_names=["formerly CloudTrim"], names_source=Cited())
+
+    kept = research(COMPANY, FakeLlm([quoted]), FakeSite(site))
+    dropped = research(COMPANY, FakeLlm([unquoted]), FakeSite(site))
+
+    assert kept.other_names == ["formerly Retail Lens"]
+    assert dropped.other_names == []
 
 
 def test_links_that_were_not_read_are_passed_on_so_later_steps_need_not_guess():

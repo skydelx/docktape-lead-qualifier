@@ -70,6 +70,25 @@ def test_the_same_company_updates_its_row_instead_of_adding_one(path):
     assert rows(path)[0]["Route"] == "REVIEW"
 
 
+def test_another_company_on_the_same_domain_cannot_overwrite_a_row(path):
+    """Found in review: anyone could replace a blocked company's row by submitting its website."""
+    blocked = make_result(
+        company="CloudTrim Inc", route=Route.DO_NOT_ENGAGE, reason="Competitor: CloudTrim Inc"
+    )
+    record(blocked, path)
+
+    row = record(make_result(company="Victim GmbH"), path)
+
+    assert row == 3
+    assert [entry["Route"] for entry in rows(path)] == ["DO-NOT-ENGAGE", "SALES-READY"]
+
+
+def test_the_same_company_is_recognised_despite_spelling_of_its_legal_form(path):
+    record(make_result(company="Acme Analytics"), path)
+
+    assert record(make_result(company="ACME Analytics, Inc."), path) == 2
+
+
 def test_leads_without_a_website_are_matched_by_company_name(path):
     record(make_result(company="No Site Ltd", domain=None), path)
     record(make_result(company="Other No Site", domain=None), path)

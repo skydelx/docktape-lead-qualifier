@@ -15,12 +15,13 @@ from pydantic import BaseModel
 from leadqual.compliance import screen
 from leadqual.config import Settings
 from leadqual.llm import Llm
-from leadqual.models import Company, Compliance, SanctionsVerdict
+from leadqual.models import Company, CompetitorVerdict, Compliance, SanctionsVerdict
 from leadqual.research import research
 from leadqual.web import FetchError, Page
 
 DEFAULT_CASES_PATH = Path("eval/compliance_cases.json")
 WORKERS = 3
+JUDGED_VERDICT = {"competitor": "competitor", "headquarters": "sanctions"}
 
 
 class Case(BaseModel):
@@ -36,6 +37,7 @@ class Outcome(BaseModel):
     actual: str
     passed: bool
     reasoning: str
+    decided_by_code: bool  # the safety net, not the agent, produced the judged verdict
 
 
 def load_cases(path: Path = DEFAULT_CASES_PATH) -> list[Case]:
@@ -56,12 +58,17 @@ def run_case(case: Case, llm: Llm, settings: Settings) -> Outcome:
     compliance = screen(company, findings, llm, settings, fetch)
     actual = _actual(case, compliance)
     return Outcome(
-        case=case, actual=actual, passed=actual == case.expected, reasoning=compliance.reasoning
+        case=case,
+        actual=actual,
+        passed=actual == case.expected,
+        reasoning=compliance.reasoning,
+        decided_by_code=JUDGED_VERDICT[case.kind] in compliance.overridden,
     )
 
 
 def _actual(case: Case, compliance: Compliance) -> str:
-    if case.kind == "competitor":
+    # A failed agent call must never count as a pass, whatever the case expects.
+    if case.kind == "competitor" or compliance.competitor is CompetitorVerdict.NOT_SCREENED:
         return compliance.competitor.value
     return "blocked" if compliance.sanctions is SanctionsVerdict.BLOCKED else "not_blocked"
 
@@ -79,6 +86,10 @@ def report(outcomes: list[Outcome]) -> str:
         passed = sum(outcome.passed for outcome in of_kind)
         lines.append(f"{kind}: {passed}/{len(of_kind)}")
     lines.append(f"total: {sum(outcome.passed for outcome in outcomes)}/{len(outcomes)}")
+    by_code = [
+        outcome.case.id for outcome in outcomes if outcome.passed and outcome.decided_by_code
+    ]
+    lines.append(f"of the passes, decided by the code safety net: {len(by_code)} {by_code}")
     for outcome in outcomes:
         if not outcome.passed:
             case = outcome.case

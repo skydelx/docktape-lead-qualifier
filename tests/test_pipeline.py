@@ -48,6 +48,8 @@ FINDINGS = Findings(
     workload_source=Cited(quote="builds data dashboards for retailers", url=HOME),
     cloud_providers=[CloudProvider.AWS],
     providers_source=Cited(quote="We run entirely on AWS", url=ABOUT),
+    other_names=[],
+    names_source=Cited(),
     sells_cloud_cost_optimization=False,
     stated_pain=False,
 )

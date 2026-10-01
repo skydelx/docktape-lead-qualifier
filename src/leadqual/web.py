@@ -34,7 +34,11 @@ class Page:
 
 
 def bare_host(url: str) -> str:
-    return (urlsplit(url).hostname or "").lower().removeprefix("www.")
+    """The host of a URL without 'www.'; empty for anything that is not a parseable URL."""
+    try:
+        return (urlsplit(url).hostname or "").lower().removeprefix("www.")
+    except ValueError:
+        return ""
 
 
 def resolve_host(host: str) -> list[str]:
@@ -47,18 +51,18 @@ def check_public_url(url: str, resolve: Resolver = resolve_host) -> None:
     The URL comes from a stranger's form submission, so without this check the
     fetcher could be pointed at internal services (server-side request forgery).
     """
-    parts = urlsplit(url)
-    if parts.scheme not in ("http", "https") or not parts.hostname:
-        raise FetchError(f"not a web URL: {url}")
     try:
+        parts = urlsplit(url)
         port = parts.port
     except ValueError as error:
         raise FetchError(f"not a web URL: {url}") from error
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        raise FetchError(f"not a web URL: {url}")
     if port not in (None, 80, 443):
         raise FetchError(f"unusual port refused: {url}")
     try:
         addresses = resolve(parts.hostname)
-    except OSError as error:
+    except (OSError, UnicodeError) as error:  # UnicodeError: a host name DNS cannot encode
         raise FetchError(f"cannot resolve {parts.hostname}") from error
     if not addresses or not all(ipaddress.ip_address(address).is_global for address in addresses):
         raise FetchError(f"{parts.hostname} is not a public address")
@@ -75,7 +79,10 @@ def fetch_page(
             check_public_url(url, resolve)
             status, headers, body = _get(client, url)
             if status in (301, 302, 303, 307, 308) and "location" in headers:
-                url = urljoin(url, headers["location"])
+                try:
+                    url = urljoin(url, headers["location"])
+                except ValueError as error:
+                    raise FetchError(f"malformed redirect from {url}") from error
                 continue
             if status != 200:
                 raise FetchError(f"HTTP {status} from {url}")
@@ -110,7 +117,10 @@ def parse_page(url: str, html: str) -> Page:
     host = bare_host(url)
     links = []
     for anchor in soup.find_all("a", href=True):
-        target = urljoin(url, anchor["href"]).split("#")[0]
+        try:
+            target = urljoin(url, anchor["href"]).split("#")[0]
+        except ValueError:  # one malformed link must not cost us the whole page
+            continue
         if bare_host(target) == host and target not in links:
             links.append(target)
     for tag in soup(["script", "style", "noscript", "svg", "template"]):

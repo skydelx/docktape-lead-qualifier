@@ -3,7 +3,7 @@
 An agent judges every lead: fuzzy and partial name matches, renamed companies,
 subsidiaries, and where the company is headquartered. A small code safety net
 runs afterwards. It can only make the outcome stricter, so neither a model
-mistake nor text planted on a website can clear an exact match.
+mistake nor text planted on a website can clear a match the code can see.
 """
 
 import logging
@@ -21,16 +21,20 @@ from leadqual.models import (
     MatchType,
     Research,
     SanctionsVerdict,
+    normalise_name,
 )
 from leadqual.research import MAX_PAGE_CHARS, Fetcher
 from leadqual.web import FetchError, bare_host, fetch_page
 
 log = logging.getLogger(__name__)
 
-LEGAL_SUFFIXES = frozenset(
-    {"inc", "incorporated", "llc", "ltd", "limited", "corp", "corporation", "co", "company"}
-    | {"gmbh", "ag", "plc", "sa", "bv", "kft"}
-)
+# How strict each sanctions verdict is; the safety net may only move a lead upwards.
+STRICTNESS = {
+    SanctionsVerdict.CLEAR: 0,
+    SanctionsVerdict.UNKNOWN: 1,
+    SanctionsVerdict.REVIEW: 2,
+    SanctionsVerdict.BLOCKED: 3,
+}
 
 SYSTEM_TEMPLATE = """\
 You are the compliance screening step of a cloud cost optimization service. Before a \
@@ -114,14 +118,6 @@ def screen(
     return _apply_safety_net(compliance, company, research, settings)
 
 
-def normalise_name(name: str) -> str:
-    """'Cloud Trim, Inc.' and 'CloudTrim Incorporated' both become 'cloudtrim'."""
-    words = re.sub(r"[^a-z0-9]+", " ", name.casefold()).split()
-    while words and words[-1] in LEGAL_SUFFIXES:
-        words.pop()
-    return "".join(words)
-
-
 def _apply_safety_net(
     compliance: Compliance, company: Company, research: Research, settings: Settings
 ) -> Compliance:
@@ -130,52 +126,80 @@ def _apply_safety_net(
     applied: list[str] = []
 
     exact = _exact_competitor(company, research, settings)
-    if exact is not None and compliance.competitor is not CompetitorVerdict.CONFIRMED_MATCH:
-        name, match_type = exact
-        changes |= {
-            "competitor": CompetitorVerdict.CONFIRMED_MATCH,
-            "matched_entry": name,
-            "match_type": match_type,
-        }
-        applied.append(f"{match_type.value.replace('_', ' ')} match with {name}")
-    elif exact is None and compliance.competitor is CompetitorVerdict.CLEAR:
-        owner = _domain_owner(company.email_domain, settings)
-        if owner is not None:
+    if exact is not None:
+        if compliance.competitor is not CompetitorVerdict.CONFIRMED_MATCH:
+            name, match_type = exact
+            changes |= {
+                "competitor": CompetitorVerdict.CONFIRMED_MATCH,
+                "matched_entry": name,
+                "match_type": match_type,
+            }
+            applied.append(f"{match_type.value.replace('_', ' ')} match with {name}")
+    elif compliance.competitor is CompetitorVerdict.CLEAR:
+        hint = _competitor_hint(company, research, settings)
+        if hint is not None:
+            name, match_type, why = hint
             changes |= {
                 "competitor": CompetitorVerdict.POSSIBLE_MATCH,
-                "matched_entry": owner,
-                "match_type": MatchType.DOMAIN,
+                "matched_entry": name,
+                "match_type": match_type,
             }
-            applied.append(f"the contact's email domain belongs to {owner}")
+            applied.append(why)
 
-    place = _listed_place(company, research, settings)
-    if place is not None:
-        floor = SanctionsVerdict.BLOCKED if place.level == "blocked" else SanctionsVerdict.REVIEW
-        stricter = floor is SanctionsVerdict.BLOCKED or compliance.sanctions in (
-            SanctionsVerdict.CLEAR,
-            SanctionsVerdict.UNKNOWN,
-        )
-        if stricter and compliance.sanctions is not floor:
-            changes |= {"sanctions": floor, "hq_country": place.place}
-            applied.append(f"headquarters in {place.place}: {place.reason}")
+    floor = _sanctions_floor(compliance, company, research, settings)
+    if floor is not None:
+        verdict, place, why = floor
+        if STRICTNESS[verdict] > STRICTNESS[compliance.sanctions]:
+            changes["sanctions"] = verdict
+            if place is not None:
+                changes["hq_country"] = place
+            applied.append(why)
 
     if not applied:
         return compliance
-    reasoning = f"Safety net: {'; '.join(applied)}. Agent: {compliance.reasoning}"
-    return compliance.model_copy(update={**changes, "safety_net": applied, "reasoning": reasoning})
+    changes |= {
+        "safety_net": applied,
+        "overridden": [verdict for verdict in ("competitor", "sanctions") if verdict in changes],
+        "reasoning": f"Safety net: {'; '.join(applied)}. Agent: {compliance.reasoning}",
+    }
+    return compliance.model_copy(update=changes)
 
 
 def _exact_competitor(
     company: Company, research: Research, settings: Settings
 ) -> tuple[str, MatchType] | None:
+    """A match beyond doubt: the same normalised name, or a known competitor domain."""
     name = normalise_name(company.name)
     for competitor in settings.competitors:
-        if name == normalise_name(competitor.name):
+        if name and name == normalise_name(competitor.name):
             return competitor.name, MatchType.EXACT_NAME
     for domain in (company.domain, research.final_domain):
         owner = _domain_owner(domain, settings)
         if owner is not None:
             return owner, MatchType.DOMAIN
+    return None
+
+
+def _competitor_hint(
+    company: Company, research: Research, settings: Settings
+) -> tuple[str | None, MatchType, str] | None:
+    """Signs the code can see that make a 'clear' verdict worth a second look by a person."""
+    owner = _domain_owner(company.email_domain, settings)
+    if owner is not None:
+        return owner, MatchType.DOMAIN, f"the contact's email domain belongs to {owner}"
+    name = normalise_name(company.name)
+    for competitor in settings.competitors:
+        key = normalise_name(competitor.name)
+        if key in name:
+            why = f"the name contains '{competitor.name}'"
+            return competitor.name, MatchType.PARTIAL_NAME, why
+        for domain in (company.domain, research.final_domain, company.email_domain):
+            if domain and key in (normalise_name(label) for label in domain.split(".")):
+                why = f"the domain {domain} is named like {competitor.name}"
+                return competitor.name, MatchType.DOMAIN, why
+    if research.sells_cloud_cost_optimization:
+        why = "research found that the company itself sells cloud cost optimization"
+        return None, MatchType.SAME_BUSINESS, why
     return None
 
 
@@ -188,21 +212,43 @@ def _domain_owner(domain: str | None, settings: Settings) -> str | None:
     return None
 
 
-def _listed_place(
-    company: Company, research: Research, settings: Settings
-) -> SanctionedPlace | None:
-    """The strictest listed place named as the company's location, if any."""
-    locations = " | ".join(
-        value
-        for value in (company.declared_country, research.hq_country, research.hq_city)
-        if value
-    )
+def _sanctions_floor(
+    compliance: Compliance, company: Company, research: Research, settings: Settings
+) -> tuple[SanctionsVerdict, str | None, str] | None:
+    """The least strict sanctions verdict the known locations allow: (verdict, place, why)."""
+    found = [research.hq_country, research.hq_city, compliance.hq_country]
+    found_place = _listed_place(found, settings)
+    declared_place = _listed_place([company.declared_country], settings)
+
+    if found_place is not None and found_place.level == "blocked":
+        return _place_floor(SanctionsVerdict.BLOCKED, found_place)
+    if declared_place is not None and declared_place.level == "blocked":
+        if research.hq_country and found_place is None:
+            why = f"the form says {declared_place.place}, research found {research.hq_country}"
+            return SanctionsVerdict.REVIEW, declared_place.place, why
+        return _place_floor(SanctionsVerdict.BLOCKED, declared_place)
+    place = found_place or declared_place
+    if place is not None:
+        return _place_floor(SanctionsVerdict.REVIEW, place)
+    if not any([*found, company.declared_country]):
+        why = "no headquarters was named by the form, research or the agent"
+        return SanctionsVerdict.UNKNOWN, None, why
+    return None
+
+
+def _place_floor(
+    verdict: SanctionsVerdict, place: SanctionedPlace
+) -> tuple[SanctionsVerdict, str, str]:
+    return verdict, place.place, f"headquarters in {place.place}: {place.reason}"
+
+
+def _listed_place(locations: list[str | None], settings: Settings) -> SanctionedPlace | None:
+    """The strictest listed place named in the given location strings, if any."""
+    text = " | ".join(value for value in locations if value).replace("\u2019", "'")
     matches = [
         place
         for place in settings.sanctions
-        if any(
-            re.search(rf"\b{re.escape(name)}\b", locations, re.IGNORECASE) for name in place.names
-        )
+        if any(re.search(rf"\b{re.escape(name)}\b", text, re.IGNORECASE) for name in place.names)
     ]
     return min(matches, key=lambda place: place.level != "blocked", default=None)
 
@@ -222,22 +268,38 @@ def _prompt(company: Company, research: Research) -> str:
         f"Website domain: {company.domain or 'none'}",
         f"Domain after redirects: {research.final_domain or 'n/a'}",
         f"Contact's email domain: {company.email_domain or 'free-mail or none'}",
+        f"Intake notes: {'; '.join(company.notes) or 'none'}",
         f"Country declared on the form: {company.declared_country or 'not given'}",
         f"Form message: {company.message or 'none'}",
         f"Research status: {research.status.value}",
         f"What the company does: {research.what_they_do or 'unknown'}",
         f"Research summary: {research.summary or 'none'}",
+        f"Former names, parent or group stated on the site: {_other_names(research)}",
         f"Sells cloud cost optimization itself: {research.sells_cloud_cost_optimization}",
         f"Headquarters found by research: {_headquarters(research)}",
         f"Unread pages on the site: {', '.join(research.other_links) or 'none'}",
     ]
-    return "<lead>\n" + "\n".join(lines) + "\n</lead>"
+    # Angle brackets are removed so that submitted text cannot close the <lead> fence.
+    return "<lead>\n" + "\n".join(_plain(line) for line in lines) + "\n</lead>"
+
+
+def _plain(text: str) -> str:
+    return text.replace("<", " ").replace(">", " ")
+
+
+def _other_names(research: Research) -> str:
+    if not research.other_names:
+        return "none found"
+    names = "; ".join(research.other_names)
+    evidence = research.evidence.get("other_names")
+    quote = evidence.quote if evidence is not None else None
+    return f'{names} (quote: "{quote}")' if quote else names
 
 
 def _headquarters(research: Research) -> str:
-    if research.hq_country is None:
-        return "unknown"
     place = ", ".join(part for part in (research.hq_city, research.hq_country) if part)
+    if not place:
+        return "unknown"
     evidence = research.evidence.get("hq_country")
     if evidence is None:
         return place
@@ -256,9 +318,8 @@ def _fetch_tool(company: Company, research: Research, fetch: Fetcher) -> Tool:
             page = fetch(url)
         except FetchError as error:
             raise ToolError(str(error)) from error
-        return (
-            f'<lead>\n<website url="{page.url}">\n{page.text[:MAX_PAGE_CHARS]}\n</website>\n</lead>'
-        )
+        text = _plain(page.text[:MAX_PAGE_CHARS])
+        return f'<lead>\n<website url="{_plain(page.url)}">\n{text}\n</website>\n</lead>'
 
     return Tool(
         name="fetch_page",

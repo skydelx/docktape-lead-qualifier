@@ -26,6 +26,7 @@ FREE_MAIL_DOMAINS = frozenset(
 SOCIAL_HOSTS = frozenset({"linkedin.com", "facebook.com", "instagram.com", "x.com", "twitter.com"})
 
 _EMAIL = re.compile(r"^[^@\s]+@([^@\s]+\.[^@\s]+)$")
+_HOST = re.compile(r"^[a-z0-9-]+(\.[a-z0-9-]+)+$")
 
 
 class InvalidLead(ValueError):
@@ -82,7 +83,7 @@ def normalise_website(website: str) -> tuple[str | None, str | None]:
         host = (parts.hostname or "").rstrip(".").encode("idna").decode("ascii").lower()
     except (ValueError, UnicodeError):
         return None, None
-    if parts.scheme not in ("http", "https") or "." not in host:
+    if parts.scheme not in ("http", "https") or not _HOST.match(host):
         return None, None
     domain = host.removeprefix("www.")
     if domain in SOCIAL_HOSTS:

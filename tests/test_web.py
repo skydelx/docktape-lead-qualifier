@@ -131,3 +131,28 @@ def test_network_failure_is_a_fetch_error():
 
     with pytest.raises(FetchError, match="ConnectTimeout"):
         fetch_page("https://acme.io/", client=client_for(handler), resolve=public)
+
+
+def test_one_malformed_link_does_not_cost_the_whole_page():
+    """Found in review: a single bad href crashed the run before anything was recorded."""
+    page = parse_page(
+        "https://acme.io/",
+        '<p>Welcome</p><a href="http://[bad">x</a><a href="//[::1">y</a><a href="/about">About</a>',
+    )
+
+    assert page.text == "Welcome x y About"
+    assert page.links == ("https://acme.io/about",)
+
+
+@pytest.mark.parametrize("location", ["http://[bad", "http://" + "a" * 64 + ".example/"])
+def test_malformed_redirect_target_is_a_fetch_error_not_a_crash(location):
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(302, headers={"location": location})
+
+    def resolve(host: str) -> list[str]:
+        if len(host) > 63:
+            raise UnicodeError("label too long")  # what socket.getaddrinfo raises
+        return PUBLIC
+
+    with pytest.raises(FetchError):
+        fetch_page("https://acme.io/", client=client_for(handler), resolve=resolve)

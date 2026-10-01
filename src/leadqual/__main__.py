@@ -4,6 +4,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -69,27 +70,34 @@ def _run(lead_path: Path, settings: Settings, *, notify_sales: bool) -> int:
         return 2
     seconds = time.perf_counter() - started
 
-    row = tracker.record(result, settings.tracker_path)
+    # The model calls are paid for by now, so nothing below may lose the result: the
+    # run log is written first, and a failed tracker write does not stop the notification.
+    _write_run_log(result, llm, seconds)
     print(f"{result.decision.route} - {result.decision.reason}")
     print(f"Fit {result.fit.total} ({result.fit.data} data) | compliance: {result.compliance.flag}")
-    print(f"Tracker: {settings.tracker_path} row {row}")
-    _write_run_log(result, llm, seconds)
+    exit_code = 0
+    try:
+        row = tracker.record(result, settings.tracker_path)
+        print(f"Tracker: {settings.tracker_path} row {row}")
+    except tracker.TrackerError as error:
+        print(f"Tracker: NOT written - {error}", file=sys.stderr)
+        exit_code = 1
 
     if notify_sales:
         try:
             notify.send(result, webhook_url)
+            print("Slack: delivered")
         except notify.NotifyError as error:
             # The decision and the tracker row stand; only the delivery failed.
             print(f"Slack: NOT delivered - {error}", file=sys.stderr)
-            return 1
-        print("Slack: delivered")
-    return 0
+            exit_code = 1
+    return exit_code
 
 
 def _write_run_log(result: Result, llm: ClaudeLlm, seconds: float) -> None:
     """Keep the full result of every run for debugging and for cost/latency numbers."""
     RUNS_DIR.mkdir(exist_ok=True)
-    name = result.company.domain or "no-website"
+    name = re.sub(r"[^a-z0-9.-]", "_", result.company.domain or "no-website")
     path = RUNS_DIR / f"{result.processed_at:%Y%m%d-%H%M%S}-{name}.json"
     log = {
         "seconds": round(seconds, 1),

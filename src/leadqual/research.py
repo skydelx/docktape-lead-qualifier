@@ -62,6 +62,9 @@ website, local service business, on-premise focus, or only a small cloud pilot. 
 large-scale workloads such as very large data volumes, streaming, multi-region, GPU/ML \
 training or millions of users. Mentioning a cloud brand or AI is not evidence of scale.
 - cloud_providers: only providers the company says it runs on.
+- other_names: every former name, parent company, group or brand relationship the site \
+states, each as a short phrase such as "formerly Acme Ltd" or "part of the Globex group". \
+Empty if the site states none.
 - sells_cloud_cost_optimization: true only if the company itself sells cloud cost \
 optimization or FinOps products or services.
 - stated_pain: true only if the form message explicitly mentions a problem with cloud \
@@ -101,6 +104,8 @@ class Findings(BaseModel):
     workload_source: Cited
     cloud_providers: list[CloudProvider]
     providers_source: Cited
+    other_names: list[str]
+    names_source: Cited
     sells_cloud_cost_optimization: bool
     stated_pain: bool
 
@@ -140,6 +145,7 @@ def research(
             ("size", findings.size_source),
             ("workload", findings.workload_source),
             ("cloud_providers", findings.providers_source),
+            ("other_names", findings.names_source),
         )
         if (found := _evidence(cited, pages)) is not None
     }
@@ -154,6 +160,7 @@ def research(
         size=findings.size if "size" in evidence else SizeBand.UNKNOWN,
         workload=findings.workload if "workload" in evidence else Workload.UNKNOWN,
         cloud_providers=findings.cloud_providers if "cloud_providers" in evidence else [],
+        other_names=findings.other_names if "other_names" in evidence else [],
         sells_cloud_cost_optimization=findings.sells_cloud_cost_optimization,
         stated_pain=findings.stated_pain,
         evidence=evidence,

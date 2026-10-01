@@ -1,9 +1,25 @@
 """Data contracts shared by every pipeline step."""
 
+import re
+import unicodedata
 from datetime import datetime
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
+
+LEGAL_SUFFIXES = frozenset(
+    {"inc", "incorporated", "llc", "ltd", "limited", "corp", "corporation", "co", "company"}
+    | {"gmbh", "ag", "plc", "sa", "bv", "nv", "kft", "zrt", "pty", "srl", "sas", "oy", "ab"}
+)
+
+
+def normalise_name(name: str) -> str:
+    """'Cloud Trim, Inc.', 'CloudTrim L.L.C.' and 'CLOUDTRIM' all become 'cloudtrim'."""
+    text = unicodedata.normalize("NFKC", name).casefold().replace(".", "")
+    words = re.sub(r"[^a-z0-9]+", " ", text).split()
+    while words and words[-1] in LEGAL_SUFFIXES:
+        words.pop()
+    return "".join(words)
 
 
 class SizeBand(StrEnum):
@@ -64,6 +80,7 @@ class CompetitorVerdict(StrEnum):
 
 class MatchType(StrEnum):
     EXACT_NAME = "exact_name"
+    PARTIAL_NAME = "partial_name"
     SPELLING_VARIANT = "spelling_variant"
     RENAMED = "renamed"
     SUBSIDIARY_OR_BRAND = "subsidiary_or_brand"
@@ -142,6 +159,7 @@ class Research(BaseModel):
     size: SizeBand = SizeBand.UNKNOWN
     workload: Workload = Workload.UNKNOWN
     cloud_providers: list[CloudProvider] = []
+    other_names: list[str] = []  # former names, parent company, group or brand the site states
     sells_cloud_cost_optimization: bool = False
     stated_pain: bool = False
     evidence: dict[str, Evidence] = {}  # keyed by the field name it supports
@@ -158,6 +176,7 @@ class Compliance(BaseModel):
     reasoning: str
     evidence: list[str] = []
     safety_net: list[str] = []  # code rules that overrode the agent, if any
+    overridden: list[str] = []  # which verdicts they changed: "competitor", "sanctions"
 
     @property
     def flag(self) -> str:
