@@ -3,8 +3,8 @@
 tracker_path = "leads.xlsx"
 
 [llm]
-# Chosen by measurement: Sonnet 5.5 and Opus 5.5 both pass 24/24 in eval/results/,
-# and Sonnet needs about a third of the cost and time.
+# Chosen by measurement: on the labelled cases in eval/ Sonnet 5.5 was as accurate as
+# Opus 5.5 at about a third of the cost and time (see README, "Measured, not asserted").
 model = "claude-sonnet-5-5"
 effort = "medium"
 max_agent_steps = 6    # API requests one agent may use before the lead goes to a person

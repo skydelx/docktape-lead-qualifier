@@ -170,17 +170,16 @@ research and screening code with the live model, and reports separately how many
 passes were decided by the code safety net rather than by the agent. A failed agent
 call counts as a failure, never as a pass.
 
-| Model | Correct | Time | Requests |
-|---|---|---|---|
-| Claude Opus 5.5 | 24/24 | 175 s | 76 |
-| Claude Sonnet 5.5 | 24/24 | 67 s | 56 |
+Current code, all 26 cases (`eval/results/claude-sonnet-5-5.json`):
 
-> These numbers are from the first 24 cases and predate the changes made after the
-> independent review (two added cases, a tighter safety net, a longer research
-> prompt). The run is to be repeated on all 26 before submission.
+| Model | Correct | Decided by the code safety net | Time | Requests |
+|---|---|---|---|---|
+| Claude Sonnet 5.5 | 26/26 | 1 (C08) | 65 s | 52 |
 
-Both were right on every case, so the default is Sonnet 5.5, at about a third of the
-token cost. Cases I wrote myself are a smoke test, not statistics.
+The model was chosen by an earlier run of the first 24 cases on both candidates: Opus
+5.5 and Sonnet 5.5 each got 24/24, Sonnet in about a third of the time and token cost
+(`eval/results/claude-opus-5-5.json` is that earlier run). Cases I wrote myself are a
+smoke test, not statistics.
 
 ### Tracker and Slack
 
@@ -224,11 +223,13 @@ token cost. Cases I wrote myself are a smoke test, not statistics.
 - The fetcher's ten-second timeout is per read; there is no overall deadline per site.
 - Real companies are only named in clean examples. Every flagged or blocked example in
   this repository is fictional.
-- The pipeline is synchronous and processes one lead per run; the first live lead took
-  16 seconds (two model calls).
-- Cost: measured token use is in `runs/` and `eval/results/`. A compliance case on
-  Sonnet 5.5 used about 5,200 input and 1,000 output tokens across research and
-  screening; web search on real leads adds to that.
+- The pipeline is synchronous and processes one lead per run; a real lead with web
+  search took 22 seconds (two model calls).
+- Cost: measured token use is in `runs/` and `eval/results/`. An evaluation case
+  (one short page, no web search) used about 4,700 input and 1,000 output tokens on
+  Sonnet 5.5. A real lead with web search used about 62,000 input tokens, because
+  search results count as input; at list prices that is roughly 14 cents a lead, and
+  capping or skipping the search is the first lever if that matters.
 
 ## How I used AI
 
