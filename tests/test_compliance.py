@@ -259,7 +259,7 @@ def test_a_country_typed_into_the_form_does_not_clear_the_sanctions_question(age
     result = screened(lead, verdict(hq_country=agent_names))
 
     assert result.sanctions is SanctionsVerdict.UNKNOWN
-    assert "the only headquarters named is the form's own (Germany)" in result.safety_net[0]
+    assert "the form's own claim (Germany) clears nothing" in result.safety_net[0]
     assert result.overridden == ["sanctions"]
 
 
@@ -284,6 +284,18 @@ def test_a_page_the_agent_read_itself_can_settle_the_headquarters():
 
     assert result.sanctions is SanctionsVerdict.CLEAR
     assert result.safety_net == []
+
+
+@pytest.mark.parametrize("agent_names", [None, "Germany"])
+def test_a_page_that_names_no_headquarters_settles_nothing(agent_names):
+    """Found in review: any fetched page, even /pricing, switched the 'unknown' floor off."""
+    site = FakeSite({"https://acme.io/pricing": "Plans from $9 per seat"})
+    llm = ReadingLlm("https://acme.io/pricing", verdict(hq_country=agent_names))
+
+    result = screen(company(declared_country="Germany"), RESEARCHED, llm, SETTINGS, site)
+
+    assert result.sanctions is SanctionsVerdict.UNKNOWN
+    assert "clears nothing" in result.safety_net[0]
 
 
 def test_a_page_the_agent_asked_for_but_did_not_get_settles_nothing():

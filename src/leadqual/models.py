@@ -133,17 +133,23 @@ class Lead(BaseModel):
         """A web form posts "" or null for a field left alone; that must not refuse the lead."""
         if value is None or (isinstance(value, str) and not value.strip()):
             return cls.model_fields[info.field_name].default
+        if isinstance(value, str) and info.field_name != "website":
+            return value.strip().lower()  # ">20K " is the same answer as ">20k"
         return value
 
     @field_validator("cloud_providers", mode="before")
     @classmethod
     def _providers_as_a_form_sends_them(cls, value: object) -> object:
-        """Nothing ticked arrives as "" or null, and 'AWS' is the same answer as 'aws'."""
-        if value is None or value == "":
+        """Nothing ticked arrives as "" or null; one tick may arrive as a bare string;
+        'AWS' is the same answer as 'aws'; a provider we do not list is 'other'."""
+        if value is None:
             return []
-        if isinstance(value, list):
-            return [item.strip().lower() if isinstance(item, str) else item for item in value]
-        return value
+        items = [value] if isinstance(value, str) else value
+        if not isinstance(items, list):
+            return value
+        known = {provider.value for provider in CloudProvider}
+        names = [item.strip().lower() if isinstance(item, str) else item for item in items]
+        return [name if name in known else "other" for name in names if name != ""]
 
 
 class Contact(BaseModel):

@@ -52,6 +52,9 @@ def test_optional_fields_are_parsed():
         {"monthly_cloud_spend": "  "},
         {"cloud_providers": None},
         {"cloud_providers": ""},
+        {"cloud_providers": "  "},
+        {"cloud_providers": [""]},
+        {"company_size": "Unknown", "monthly_cloud_spend": " UNKNOWN "},
         {"job_title": "", "country": "", "message": ""},
     ],
 )
@@ -75,6 +78,26 @@ def test_provider_names_are_accepted_in_any_case():
     _, company = accept(BASE | {"cloud_providers": ["AWS", " Oracle "]})
 
     assert company.declared_providers == [CloudProvider.AWS, CloudProvider.ORACLE]
+
+
+@pytest.mark.parametrize(
+    ("posted", "providers"),
+    [
+        ("aws", [CloudProvider.AWS]),
+        (["DigitalOcean", "gcp"], [CloudProvider.OTHER, CloudProvider.GCP]),
+    ],
+)
+def test_a_single_tick_and_an_unlisted_provider_do_not_refuse_the_lead(posted, providers):
+    _, company = accept(BASE | {"cloud_providers": posted})
+
+    assert company.declared_providers == providers
+
+
+def test_band_answers_are_accepted_with_stray_spaces_and_capitals():
+    _, company = accept(BASE | {"company_size": "51-1000 ", "monthly_cloud_spend": ">20K"})
+
+    assert company.declared_size is SizeBand.MID
+    assert company.declared_spend is SpendBand.OVER_20K
 
 
 @pytest.mark.parametrize(

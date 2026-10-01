@@ -163,9 +163,44 @@ def test_a_headquarters_only_the_form_names_is_labelled_as_unverified(path):
         reasoning="Nobody has seen where this company is based.",
     )
 
-    record(make_result(compliance=unknown, declared_country="Portugal"), path)
+    record(make_result(compliance=unknown, declared_country="Portugal", research_hq=None), path)
 
     assert rows(path)[0]["HQ"] == "Portugal (form, unverified)"
+
+
+def test_a_researched_headquarters_is_shown_even_when_the_screening_did_not_complete(path):
+    """Found in review: the sourced finding vanished exactly when a person had to check."""
+    not_screened = Compliance(
+        competitor=CompetitorVerdict.NOT_SCREENED,
+        sanctions=SanctionsVerdict.UNKNOWN,
+        reasoning="The screening agent did not return a result; a person must check this lead.",
+    )
+
+    record(make_result(compliance=not_screened, declared_country="Portugal"), path)
+
+    assert rows(path)[0]["HQ"] == "Austria"
+
+
+def test_a_tracker_whose_columns_were_moved_is_refused_instead_of_filled_wrongly(path):
+    """Found in review: an inserted column silently put every value under the wrong header."""
+    record(make_result(), path)
+    workbook = load_workbook(path)
+    workbook["Leads"].insert_cols(1)
+    workbook["Leads"]["A1"] = "Owner"
+    workbook.save(path)
+
+    with pytest.raises(TrackerError, match="column headers"):
+        record(make_result(company="Beta Corp", domain="beta.example"), path)
+
+
+def test_a_sheet_that_is_too_narrow_to_be_the_tracker_is_refused(path):
+    workbook = Workbook()
+    workbook.active.title = "Leads"
+    workbook.active.append(["Route", "Why"])
+    workbook.save(path)
+
+    with pytest.raises(TrackerError, match="column headers"):
+        record(make_result(), path)
 
 
 def test_cells_a_rep_typed_over_do_not_stop_the_next_lead(path):

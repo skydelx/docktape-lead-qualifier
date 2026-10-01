@@ -8,6 +8,7 @@ mistake nor text planted on a website can clear a match the code can see.
 
 import logging
 import re
+from collections.abc import Sequence
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -119,9 +120,7 @@ def screen(
             sanctions=SanctionsVerdict.UNKNOWN,
             reasoning="The screening agent did not return a result; a person must check this lead.",
         )
-    return _apply_safety_net(
-        compliance, company, research, settings, agent_read_a_page=bool(pages_read)
-    )
+    return _apply_safety_net(compliance, company, research, settings, agent_pages=pages_read)
 
 
 def _apply_safety_net(
@@ -130,9 +129,12 @@ def _apply_safety_net(
     research: Research,
     settings: Settings,
     *,
-    agent_read_a_page: bool = False,
+    agent_pages: Sequence[str] = (),
 ) -> Compliance:
-    """Deterministic floor under the agent: these rules only ever tighten the verdict."""
+    """Deterministic floor under the agent: these rules only ever tighten the verdict.
+
+    `agent_pages` holds the text of every page the agent fetched itself.
+    """
     changes: dict[str, Any] = {}
     applied: list[str] = []
 
@@ -157,7 +159,7 @@ def _apply_safety_net(
             }
             applied.append(why)
 
-    floor = _sanctions_floor(compliance, company, research, settings, agent_read_a_page)
+    floor = _sanctions_floor(compliance, company, research, settings, agent_pages)
     if floor is not None:
         verdict, place, why = floor
         if STRICTNESS[verdict] > STRICTNESS[compliance.sanctions]:
@@ -228,7 +230,7 @@ def _sanctions_floor(
     company: Company,
     research: Research,
     settings: Settings,
-    agent_read_a_page: bool,
+    agent_pages: Sequence[str],
 ) -> tuple[SanctionsVerdict, str | None, str] | None:
     """The least strict sanctions verdict the known locations allow: (verdict, place, why)."""
     found = [research.hq_country, research.hq_city, compliance.hq_country]
@@ -245,16 +247,26 @@ def _sanctions_floor(
     place = found_place or declared_place
     if place is not None:
         return _place_floor(SanctionsVerdict.REVIEW, place)
-    if not (research.hq_country or research.hq_city or agent_read_a_page):
+    if not (research.hq_country or research.hq_city or _seen_by_agent(compliance, agent_pages)):
         # Nobody has seen where this company is based: research found no sourced
-        # headquarters and the agent read no page of its own. A country typed into the
-        # form, or one the agent repeats from it, must not clear the sanctions question.
+        # headquarters, and the agent names none that stands on a page it read itself.
+        # A country typed into the form, or one the agent repeats from it, must not
+        # clear the sanctions question.
         if company.declared_country:
-            why = f"the only headquarters named is the form's own ({company.declared_country})"
+            why = (
+                "no headquarters was found on any page; the form's own claim"
+                f" ({company.declared_country}) clears nothing"
+            )
         else:
-            why = "no headquarters was found by research or the agent"
+            why = "no headquarters was found by research or on a page the agent read"
         return SanctionsVerdict.UNKNOWN, None, why
     return None
+
+
+def _seen_by_agent(compliance: Compliance, agent_pages: Sequence[str]) -> bool:
+    """The agent's headquarters counts only if that place stands on a page it fetched."""
+    place = (compliance.hq_country or "").strip().casefold()
+    return bool(place) and any(place in text.casefold() for text in agent_pages)
 
 
 def _place_floor(
@@ -330,7 +342,7 @@ def _headquarters(research: Research) -> str:
 def _fetch_tool(
     company: Company, research: Research, fetch: Fetcher, pages_read: list[str]
 ) -> Tool:
-    """The agent's one tool. Every page it actually gets is noted in `pages_read`."""
+    """The agent's one tool. The text of every page it actually gets is kept in `pages_read`."""
     own_hosts = {host for host in (company.domain, research.final_domain) if host}
 
     def handler(arguments: dict[str, Any]) -> str:
@@ -342,8 +354,8 @@ def _fetch_tool(
             page = fetch(url)
         except FetchError as error:
             raise ToolError(str(error)) from error
-        pages_read.append(page.url)
         text = _plain(page.text[:MAX_PAGE_CHARS])
+        pages_read.append(text)
         return f'<lead>\n<website url="{_plain(page.url)}">\n{text}\n</website>\n</lead>'
 
     return Tool(

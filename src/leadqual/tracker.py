@@ -56,6 +56,10 @@ def record(result: Result, path: Path) -> int:
         sheet = workbook[SHEET_NAME]
     except (OSError, KeyError, ValueError, BadZipFile, InvalidFileException) as error:
         raise TrackerError(f"{path} could not be opened as the lead tracker: {error}") from error
+    if [cell.value for cell in sheet[1]][: len(HEADERS)] != HEADERS:
+        # The columns are addressed by position, so a moved, inserted or deleted column
+        # would silently put every value under the wrong header.
+        raise TrackerError(f"the column headers of {path} were changed; restore them and run again")
     rows: list[Row] = [
         list(row) for row in sheet.iter_rows(min_row=2, values_only=True) if row[COMPANY]
     ]
@@ -158,9 +162,13 @@ def _row_values(result: Result) -> Row:
 
 def _headquarters(result: Result) -> str:
     """Where the company is based, and whose word that is."""
-    found = result.compliance.hq_country or result.research.hq_country
-    if found and result.compliance.sanctions is not SanctionsVerdict.UNKNOWN:
-        return found
+    researched = result.research.hq_country
+    if result.compliance.sanctions is not SanctionsVerdict.UNKNOWN:
+        found = result.compliance.hq_country or researched
+        if found:
+            return found
+    elif researched:  # the screening did not settle it, but research did find a source
+        return researched
     declared = result.company.declared_country
     return f"{declared} (form, unverified)" if declared else ""
 
