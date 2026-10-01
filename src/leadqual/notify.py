@@ -42,7 +42,7 @@ def format_message(result: Result) -> str:
 
 
 def escape(text: str) -> str:
-    """Neutralise Slack control characters: submitted text must not ping a channel or fake a link."""
+    """Escape Slack control characters so submitted text cannot ping a channel or fake a link."""
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
