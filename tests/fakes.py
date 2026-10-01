@@ -1,12 +1,64 @@
-"""Test doubles shared by the test modules."""
+"""Test doubles and builders shared by the test modules."""
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from pydantic import BaseModel
 
 from leadqual.llm import Tool
+from leadqual.models import (
+    Company,
+    CompetitorVerdict,
+    Compliance,
+    Contact,
+    Decision,
+    Fit,
+    Research,
+    ResearchStatus,
+    Result,
+    Route,
+    SanctionsVerdict,
+)
 from leadqual.web import FetchError, Page
+
+
+def make_result(
+    *,
+    company: str = "Acme Analytics",
+    domain: str | None = "acme.io",
+    route: Route = Route.SALES_READY,
+    reason: str = "Fit 85, compliance clear",
+    summary: str = "Acme builds retail dashboards on AWS.",
+    compliance: Compliance | None = None,
+    job_title: str | None = "CTO",
+) -> Result:
+    """A finished pipeline result, for testing the tracker and the notification."""
+    return Result(
+        contact=Contact(name="Ada Example", email="ada@acme.io", job_title=job_title),
+        company=Company(name=company, domain=domain),
+        research=Research(status=ResearchStatus.OK, summary=summary, hq_country="Austria"),
+        compliance=compliance
+        or Compliance(
+            competitor=CompetitorVerdict.CLEAR,
+            sanctions=SanctionsVerdict.CLEAR,
+            hq_country="Austria",
+            reasoning="Unrelated retail analytics company based in Austria.",
+        ),
+        fit=Fit(
+            size_points=50,
+            cloud_points=25,
+            bonus_points=10,
+            total=85,
+            size_basis="51-1000 (website)",
+            cloud_basis="medium workload, inferred (website)",
+            size_known=True,
+            cloud_known=True,
+            bonuses=["runs on aws", "decision maker (CTO)"],
+        ),
+        decision=Decision(route=route, reason=reason),
+        processed_at=datetime(2026, 10, 1, 14, 30),
+    )
 
 
 @dataclass

@@ -1,0 +1,12 @@
+{
+  "name": "Ada Example",
+  "email": "ada@example.com",
+  "company": "Example Analytics",
+  "website": "https://example.com",
+  "job_title": "CTO",
+  "country": "Austria",
+  "company_size": "51-1000",
+  "monthly_cloud_spend": "5k-20k",
+  "cloud_providers": ["aws"],
+  "message": "Our AWS bill doubled this year and we do not know why."
+}

@@ -158,6 +158,23 @@ class Compliance(BaseModel):
     evidence: list[str] = []
     safety_net: list[str] = []  # code rules that overrode the agent, if any
 
+    @property
+    def flag(self) -> str:
+        """The one-line compliance flag shown in the tracker and the notification."""
+        if self.competitor is CompetitorVerdict.CONFIRMED_MATCH:
+            return f"FLAGGED: competitor ({self.matched_entry})"
+        if self.sanctions is SanctionsVerdict.BLOCKED:
+            return f"FLAGGED: sanctions ({self.hq_country})"
+        if self.competitor is CompetitorVerdict.NOT_SCREENED:
+            return "NOT SCREENED"
+        if self.competitor is CompetitorVerdict.POSSIBLE_MATCH:
+            return f"CHECK: possible competitor ({self.matched_entry or 'same service'})"
+        if self.sanctions is SanctionsVerdict.REVIEW:
+            return f"CHECK: sanctions ({self.hq_country})"
+        if self.sanctions is SanctionsVerdict.UNKNOWN:
+            return "CHECK: headquarters unknown"
+        return "clear"
+
 
 class Fit(BaseModel):
     size_points: int
