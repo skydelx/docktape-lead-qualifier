@@ -87,7 +87,11 @@ Bitrise and Rába are real companies used only as research targets: they did not
 the contacts are invented, and Rába's size band is its publicly reported headcount. The
 two flagged leads are fictional, on `.test` domains that cannot resolve.
 
-> Slack screenshots: to be added under `demo/` before submission.
+The four Slack messages from these runs, as they arrived in the test channel:
+
+![Slack messages for the two sales-ready leads](demo/slack-1-sales-ready.png)
+
+![Slack messages for the blocked competitor and the near-match](demo/slack-2-flagged.png)
 
 ## Decisions, and why
 
