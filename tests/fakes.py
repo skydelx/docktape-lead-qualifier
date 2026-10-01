@@ -21,7 +21,7 @@ from leadqual.models import (
     Route,
     SanctionsVerdict,
 )
-from leadqual.web import FetchError, Page
+from leadqual.web import FetchError, HostNotFound, Page
 
 
 def make_result(
@@ -104,6 +104,8 @@ class FakeSite:
 
     def __call__(self, url: str) -> Page:
         self.fetched.append(url)
+        if not self._pages:
+            raise HostNotFound(f"cannot resolve {url}")
         if url not in self._pages:
             raise FetchError(f"HTTP 404 from {url}")
         links = tuple(other for other in self._pages if other != url)

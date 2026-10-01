@@ -66,7 +66,8 @@ class Source(StrEnum):
 class ResearchStatus(StrEnum):
     OK = "ok"
     NO_WEBSITE = "no-website"
-    UNREACHABLE = "unreachable"
+    SEARCH_ONLY = "search-only"  # the site exists but refused us; findings come from web search
+    UNREACHABLE = "unreachable"  # the site does not exist
     EMPTY_SITE = "empty-site"  # parked, for sale, placeholder
     FAILED = "failed"
 

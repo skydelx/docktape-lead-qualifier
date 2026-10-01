@@ -176,7 +176,7 @@ RULES: tuple[Rule, ...] = (
     ),
     Rule(
         Route.CHECK_FIRST,
-        lambda f: f.research.status is not ResearchStatus.OK,
+        lambda f: f.research.status not in (ResearchStatus.OK, ResearchStatus.SEARCH_ONLY),
         lambda f: f"Could not research the company ({f.research.status})",
     ),
     Rule(

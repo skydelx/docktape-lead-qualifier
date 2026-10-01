@@ -323,7 +323,7 @@ def test_agent_cannot_be_sent_to_other_websites(url):
 
 
 def test_unfetchable_page_is_reported_to_the_agent():
-    tool = fetch_tool(FakeSite({}))
+    tool = fetch_tool(FakeSite({"https://acme.io/": "Home"}))
 
     with pytest.raises(ToolError, match="404"):
         tool.handler({"url": "https://acme.io/missing"})

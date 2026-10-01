@@ -2,6 +2,7 @@ from fakes import FakeLlm, FakeSite
 from leadqual.llm import LlmError
 from leadqual.models import CloudProvider, Company, ResearchStatus, SizeBand, Source, Workload
 from leadqual.research import MAX_PAGES, Cited, Findings, research
+from leadqual.web import FetchError, Page
 
 HOME = "https://acme.io/"
 ABOUT = "https://acme.io/about"
@@ -187,3 +188,37 @@ def test_links_that_were_not_read_are_passed_on_so_later_steps_need_not_guess():
 
     assert result.pages_fetched == [HOME, ABOUT]
     assert result.other_links == ["https://acme.io/blog", "https://acme.io/pricing"]
+
+
+def refusing_site(_url: str) -> Page:
+    raise FetchError("HTTP 403 from https://acme.io/")
+
+
+def test_a_site_that_refuses_us_is_researched_by_web_search_alone():
+    """Found on real companies: bot protection sent well-known firms to a person unresearched."""
+    source = Cited(url="https://www.linkedin.com/company/acme")
+    searched = findings(
+        hq_source=source, size_source=source, workload_source=Cited(), providers_source=Cited()
+    )
+    llm = FakeLlm([searched])
+
+    result = research(COMPANY, llm, refusing_site)
+
+    assert result.status is ResearchStatus.SEARCH_ONLY
+    assert (result.hq_country, result.size) == ("Austria", SizeBand.MID)
+    assert result.evidence["hq_country"].source is Source.SEARCH
+    assert (
+        result.workload is Workload.UNKNOWN
+    )  # nothing can be quoted from a site we could not read
+    assert result.pages_fetched == []
+    assert "could not be read" in llm.calls[0].prompt
+    assert llm.calls[0].web_search is True
+
+
+def test_a_site_that_refuses_us_stays_unresearched_when_web_search_is_off():
+    llm = FakeLlm([])
+
+    result = research(COMPANY, llm, refusing_site, web_search=False)
+
+    assert result.status is ResearchStatus.UNREACHABLE
+    assert llm.calls == []

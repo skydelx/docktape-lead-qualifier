@@ -22,6 +22,10 @@ class FetchError(Exception):
     """The page could not, or must not, be fetched."""
 
 
+class HostNotFound(FetchError):
+    """The host name does not resolve: there is no such website."""
+
+
 @dataclass(frozen=True)
 class Page:
     url: str  # after redirects
@@ -63,7 +67,7 @@ def check_public_url(url: str, resolve: Resolver = resolve_host) -> None:
     try:
         addresses = resolve(parts.hostname)
     except (OSError, UnicodeError) as error:  # UnicodeError: a host name DNS cannot encode
-        raise FetchError(f"cannot resolve {parts.hostname}") from error
+        raise HostNotFound(f"cannot resolve {parts.hostname}") from error
     if not addresses or not all(ipaddress.ip_address(address).is_global for address in addresses):
         raise FetchError(f"{parts.hostname} is not a public address")
 

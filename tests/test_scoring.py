@@ -321,7 +321,12 @@ def test_compliance_findings_stop_even_a_perfect_fit(screening, route, reason):
 
 @pytest.mark.parametrize(
     "status",
-    [status for status in ResearchStatus if status is not ResearchStatus.OK],
+    [
+        ResearchStatus.NO_WEBSITE,
+        ResearchStatus.UNREACHABLE,
+        ResearchStatus.EMPTY_SITE,
+        ResearchStatus.FAILED,
+    ],
 )
 def test_a_company_we_could_not_research_goes_to_a_person(status):
     decision = decide(CLEAR, Research(status=status), fit_of(100))
@@ -366,3 +371,10 @@ def test_blocked_beats_every_softer_outcome():
 
 def test_the_rule_table_ends_with_a_catch_all():
     assert RULES[-1].route is Route.SALES_READY
+
+
+def test_a_company_researched_by_web_search_alone_is_still_callable():
+    """Its website refused us, but search told us who it is; the row says so."""
+    searched = Research(status=ResearchStatus.SEARCH_ONLY)
+
+    assert decide(CLEAR, searched, fit_of(70)).route is Route.SALES_READY
