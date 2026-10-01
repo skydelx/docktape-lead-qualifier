@@ -29,6 +29,15 @@ Two separate answers come out for every lead, as the brief asks: a **fit score**
 | `CHECK-FIRST` | one concrete question for a person before anyone calls: a possible near-match, an unknown headquarters, a site that could not be researched, or a form that contradicts research |
 | `DO-NOT-ENGAGE` | a competitor, or headquartered in a sanctioned place; stays visible at the bottom of the sheet, with the reason |
 
+**How often does a person have to look?** I ran 40 real companies of mixed kinds
+(SaaS, enterprises, traditional businesses, agencies) through the pipeline with only
+the four original form fields. 35 came out callable and 5 check-first: three of those
+were real cloud-cost-optimisation vendors, correctly held back as possible competitors;
+one had no findable headquarters; one website did not exist. The first 20 also showed
+that three well-known companies went to a person only because their sites refuse
+automated requests, so research now falls back to web search for such sites. The
+results are not in this repository, because they name real companies.
+
 A lead never goes to a person because of its score. An earlier version sent every
 score between 40 and 64 to review; that made a person decide what a sorted list
 decides for free.
@@ -246,8 +255,9 @@ smoke test, not statistics.
 
 ## Assumptions and limitations
 
-- If the website cannot be fetched (bot protection, JavaScript-only pages), the lead
-  is marked check-first; the program does not fall back to web search alone.
+- If the website exists but refuses automated requests, research uses web search
+  alone and the row says so; nothing can then be quoted from the site itself. If the
+  domain does not exist, the lead is marked check-first.
 - Size bands, thresholds and the sanctions table are my assumptions; all are in
   `config.toml`.
 - Self-reported answers count. A lead that declares a large cloud bill can reach the
@@ -264,7 +274,7 @@ smoke test, not statistics.
 - Cost: measured token use is in `runs/` and `eval/results/`. An evaluation case
   (one short page, no web search) used about 4,700 input and 1,000 output tokens on
   Sonnet 5.5. A real lead with web search used about 62,000 input tokens, because
-  search results count as input; at list prices that is roughly 14 cents a lead, and
+  search results count as input; at list prices that is roughly 10 cents a lead (40 real companies cost about $3.80 in total), and
   capping or skipping the search is the first lever if that matters.
 
 ## How I used AI
