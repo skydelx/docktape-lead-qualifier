@@ -13,7 +13,9 @@ DEFAULT_CONFIG_PATH = Path("config.toml")
 
 class LlmSettings(BaseModel):
     model: str
+    effort: Literal["low", "medium", "high", "xhigh", "max"]
     max_agent_steps: int
+    max_web_searches: int
 
 
 class Competitor(BaseModel):

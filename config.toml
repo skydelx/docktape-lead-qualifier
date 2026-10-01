@@ -3,8 +3,10 @@
 tracker_path = "leads.xlsx"
 
 [llm]
-model = "claude-sonnet-5-5"
-max_agent_steps = 4
+model = "claude-opus-5-5"
+effort = "medium"
+max_agent_steps = 6    # API requests one agent may use before the lead goes to a person
+max_web_searches = 3
 
 # --- Do-not-engage list (fictional, from the exercise brief) -----------------
 # The domains are made up too; `.test` can never resolve to a real company.

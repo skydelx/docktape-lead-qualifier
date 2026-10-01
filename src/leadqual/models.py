@@ -51,6 +51,7 @@ class ResearchStatus(StrEnum):
     OK = "ok"
     NO_WEBSITE = "no-website"
     UNREACHABLE = "unreachable"
+    EMPTY_SITE = "empty-site"  # parked, for sale, placeholder
     FAILED = "failed"
 
 

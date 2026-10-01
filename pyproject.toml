@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "Lead qualification prototype: research, compliance screening, fit score, tracker, notification."
 requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=1.11.0",
+    "beautifulsoup4>=4.15.0",
+    "httpx>=0.28.1",
     "pydantic>=2",
 ]
 
@@ -32,3 +35,4 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["tests"]
