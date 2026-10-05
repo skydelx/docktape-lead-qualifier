@@ -139,9 +139,10 @@ has the email address.
 
 A factual finding (headquarters, size, workload, providers, former names) is kept only
 if it has a source. A quote must be found, verbatim, on a page
-the program actually fetched (checked in code, `research.py`); a web-search finding
-keeps its URL and is labelled as such. Anything unsourced is dropped to "unknown"
-rather than passed on as a guess. A matching quote proves the text is on the page, not
+the program actually fetched, and a web-search finding must cite a URL that the
+search really returned (both checked in code, `research.py`); a model can name a
+plausible page it never saw. Anything unsourced is dropped to "unknown" rather than
+passed on as a guess. A matching quote proves the text is on the page, not
 that the text is true.
 
 ### Fit: company size and cloud spend, in code
@@ -294,8 +295,6 @@ smoke test, not statistics.
   top of the list before research confirms anything; the tracker and the Slack message
   say "self-reported, unverified". I chose this over holding such leads back, because
   a sales call is cheap and a queue nobody reads is not.
-- A web-search finding keeps the URL the model cited, but the program does not check
-  that the URL was among the actual search results.
 - The fetcher's ten-second timeout is per read; there is no overall deadline per site.
 - Real companies are only named in clean examples. Every flagged or blocked example in
   this repository is fictional.
@@ -336,6 +335,20 @@ are complexity without a benefit, and these decisions are not where the money go
 screening call costs about a cent a lead (`demo/runs/03_flagged_competitor.json`), the
 research with web search most of the rest, and a decision model does not search or
 write the summary. Thirty-six cases of my own in a single run are a signal, not proof.
+
+## In production: what would change (not built)
+
+The do-not-engage list here is three competitors and ten places, small enough to hand
+to the agent whole, and in real use those two lists would stay small. What would grow
+is screening against named entities: the EU and OFAC lists of sanctioned companies and
+people are long and change often, and they decide the "check first" countries, where
+only listed firms are off limits. That is a name-matching problem, not a retrieval one,
+so I would not reach for RAG: load the official lists (or a screening service), find
+candidate names with fuzzy, transliteration-aware matching, and let the agent judge
+only those candidates, as it judges near-matches to competitors now, with the same code
+safety net underneath. Beyond that: a queue fed by the form instead of one lead per
+run, a daily digest for low-scoring leads, and fit weights calibrated on which leads
+actually closed.
 
 ## How I used AI
 

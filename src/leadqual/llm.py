@@ -56,6 +56,7 @@ class Llm(Protocol):
         result_type: type[T],
         tools: Sequence[Tool] = (),
         web_search: bool = False,
+        search_urls: list[str] | None = None,
     ) -> T: ...
 
 
@@ -73,7 +74,10 @@ class ClaudeLlm:
         result_type: type[T],
         tools: Sequence[Tool] = (),
         web_search: bool = False,
+        search_urls: list[str] | None = None,
     ) -> T:
+        """Run the agent loop. Every URL the web search actually returned is appended to
+        `search_urls`, so the caller can check a cited source against it."""
         handlers = {tool.name: tool.handler for tool in tools}
         definitions = self._tool_definitions(tools, result_type, web_search)
         messages: list[dict[str, Any]] = [{"role": "user", "content": prompt}]
@@ -81,6 +85,8 @@ class ClaudeLlm:
         for _ in range(self._settings.max_agent_steps):
             response = self._request(system, messages, definitions)
             messages.append({"role": "assistant", "content": response.content})
+            if search_urls is not None:
+                search_urls.extend(_search_result_urls(response.content))
             if response.stop_reason == "pause_turn":  # a server tool is still running
                 continue
 
@@ -156,6 +162,20 @@ class ClaudeLlm:
         if response.stop_reason == "refusal":
             raise LlmError("the model declined the request")
         return response
+
+
+def _search_result_urls(content: Sequence[Any]) -> list[str]:
+    """The URLs of the web search results in one response, and of any citations of them."""
+    urls = []
+    for block in content:
+        if block.type == "web_search_tool_result":
+            results = block.content
+            if isinstance(results, list):  # an error arrives as a single object instead
+                urls.extend(result.url for result in results if getattr(result, "url", None))
+        for citation in getattr(block, "citations", None) or ():
+            if getattr(citation, "url", None):
+                urls.append(citation.url)
+    return urls
 
 
 def _run_tool(handlers: dict[str, Callable[[dict[str, Any]], str]], call: Any) -> dict[str, Any]:

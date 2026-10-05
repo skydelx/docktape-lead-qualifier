@@ -1,3 +1,5 @@
+import pytest
+
 from fakes import FakeLlm, FakeSite
 from leadqual.llm import LlmError
 from leadqual.models import CloudProvider, Company, ResearchStatus, SizeBand, Source, Workload
@@ -96,15 +98,54 @@ def test_too_short_a_quote_proves_nothing():
     assert result.cloud_providers == []
 
 
-def test_web_search_result_is_kept_and_labelled_as_such():
-    source = Cited(url="https://www.linkedin.com/company/acme")
-    reported = findings(size_source=source)
+LINKEDIN = "https://www.linkedin.com/company/acme"
 
-    result = research(COMPANY, FakeLlm([reported]), FakeSite(SITE))
+
+def test_web_search_result_is_kept_and_labelled_as_such():
+    source = Cited(url=LINKEDIN)
+    reported = findings(size_source=source)
+    llm = FakeLlm([reported], search_results=[LINKEDIN])
+
+    result = research(COMPANY, llm, FakeSite(SITE))
 
     assert result.size is SizeBand.MID
     assert result.evidence["size"].source is Source.SEARCH
     assert result.evidence["size"].url == source.url
+
+
+def test_a_cited_url_the_web_search_never_returned_drops_the_finding():
+    """A model can name a plausible URL it never saw; that is not a source."""
+    reported = findings(size_source=Cited(url=LINKEDIN))
+    llm = FakeLlm([reported], search_results=["https://en.wikipedia.org/wiki/Acme"])
+
+    result = research(COMPANY, llm, FakeSite(SITE))
+
+    assert result.size is SizeBand.UNKNOWN
+    assert "size" not in result.evidence
+
+
+def test_without_web_search_no_finding_can_rest_on_a_url():
+    llm = FakeLlm([findings(size_source=Cited(url=LINKEDIN))], search_results=[LINKEDIN])
+
+    result = research(COMPANY, llm, FakeSite(SITE), web_search=False)
+
+    assert result.size is SizeBand.UNKNOWN
+
+
+@pytest.mark.parametrize(
+    "cited",
+    [
+        "http://linkedin.com/company/acme/",
+        "https://www.linkedin.com/company/acme#about",
+        "https://LinkedIn.com/company/acme",
+    ],
+)
+def test_the_same_search_result_cited_slightly_differently_still_counts(cited):
+    llm = FakeLlm([findings(size_source=Cited(url=cited))], search_results=[LINKEDIN])
+
+    result = research(COMPANY, llm, FakeSite(SITE))
+
+    assert result.evidence["size"].source is Source.SEARCH
 
 
 def test_unsourced_finding_citing_only_the_companys_own_site_is_dropped():
@@ -217,11 +258,11 @@ def refusing_site(_url: str) -> Page:
 
 def test_a_site_that_refuses_us_is_researched_by_web_search_alone():
     """Found on real companies: bot protection sent well-known firms to a person unresearched."""
-    source = Cited(url="https://www.linkedin.com/company/acme")
+    source = Cited(url=LINKEDIN)
     searched = findings(
         hq_source=source, size_source=source, workload_source=Cited(), providers_source=Cited()
     )
-    llm = FakeLlm([searched])
+    llm = FakeLlm([searched], search_results=[LINKEDIN])
 
     result = research(COMPANY, llm, refusing_site)
 

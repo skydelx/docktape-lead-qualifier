@@ -81,6 +81,7 @@ class FakeLlm:
 
     script: list[BaseModel | Exception]
     calls: list[LlmCall] = field(default_factory=list)
+    search_results: list[str] = field(default_factory=list)  # URLs the "web search" returns
 
     def run(
         self,
@@ -90,8 +91,11 @@ class FakeLlm:
         result_type: type[BaseModel],
         tools: Sequence[Tool] = (),
         web_search: bool = False,
+        search_urls: list[str] | None = None,
     ) -> BaseModel:
         self.calls.append(LlmCall(system, prompt, list(tools), web_search))
+        if web_search and search_urls is not None:
+            search_urls.extend(self.search_results)
         result = self.script.pop(0)
         if isinstance(result, Exception):
             raise result

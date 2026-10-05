@@ -142,12 +142,14 @@ def research(
 
     final_domain = pages[0].host if pages else None
     pages_fetched = [page.url for page in pages]
+    search_urls: list[str] = []
     try:
         findings = llm.run(
             system=SYSTEM_TEMPLATE.format(search_hint=SEARCH_HINT if web_search else ""),
             prompt=_prompt(company, pages),
             result_type=Findings,
             web_search=web_search,
+            search_urls=search_urls,
         )
     except LlmError as error:
         log.warning("research failed for %s: %s", company.domain, error)
@@ -159,6 +161,9 @@ def research(
             status=ResearchStatus.EMPTY_SITE, final_domain=final_domain, pages_fetched=pages_fetched
         )
 
+    if web_search and not search_urls:
+        # Then no finding can rest on a search result: worth seeing when it happens live.
+        log.info("web search returned no result URLs for %s", company.domain)
     evidence = {
         field: found
         for field, cited in (
@@ -168,7 +173,7 @@ def research(
             ("cloud_providers", findings.providers_source),
             ("other_names", findings.names_source),
         )
-        if (found := _evidence(cited, pages)) is not None
+        if (found := _evidence(cited, pages, search_urls)) is not None
     }
     # A finding without a checked source is dropped rather than passed on as a guess.
     return Research(
@@ -239,8 +244,9 @@ def _prompt(company: Company, pages: list[Page]) -> str:
     return "\n\n".join(parts)
 
 
-def _evidence(cited: Cited, pages: list[Page]) -> Evidence | None:
-    """Accept a quote only if it really is on a page we fetched; else a search URL; else nothing.
+def _evidence(cited: Cited, pages: list[Page], search_urls: list[str]) -> Evidence | None:
+    """Accept a quote only if it really is on a page we fetched; else a URL the web search
+    really returned; else nothing.
 
     A matching quote proves the text is on the page, not that the text is true.
     """
@@ -249,17 +255,23 @@ def _evidence(cited: Cited, pages: list[Page]) -> Evidence | None:
         for page in pages:
             if needle in _normalised(page.text):
                 return Evidence(source=Source.PAGE, quote=cited.quote.strip(), url=page.url)
-    if cited.url and _is_external_web_url(cited.url, pages):
+    cited_url = _comparable(cited.url or "")
+    if cited_url and cited_url in {_comparable(url) for url in search_urls}:
         return Evidence(source=Source.SEARCH, url=cited.url)
     return None
 
 
-def _is_external_web_url(url: str, pages: list[Page]) -> bool:
+def _comparable(url: str) -> str:
+    """A URL as two citations of the same page agree on: no scheme, 'www.', fragment or
+    trailing slash. Empty for anything that is not a web URL."""
     try:
-        is_web_url = urlsplit(url).scheme in ("http", "https")
+        parts = urlsplit(url.strip())
     except ValueError:  # the model cited something that is not a URL at all
-        return False
-    return is_web_url and all(bare_host(url) != page.host for page in pages)
+        return ""
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        return ""
+    query = f"?{parts.query}" if parts.query else ""
+    return f"{bare_host(url.strip())}{parts.path.rstrip('/')}{query}"
 
 
 def _normalised(text: str) -> str:

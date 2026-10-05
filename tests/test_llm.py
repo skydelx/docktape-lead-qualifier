@@ -178,3 +178,39 @@ def test_transient_api_failure_becomes_an_llm_error(status):
 def test_configuration_errors_are_not_swallowed(status):
     with pytest.raises(anthropic.APIStatusError):
         run(FakeClient(api_error(status)))
+
+
+def search_result(*urls: str) -> SimpleNamespace:
+    results = [SimpleNamespace(type="web_search_result", url=url, title="t") for url in urls]
+    return SimpleNamespace(type="web_search_tool_result", content=results)
+
+
+def test_the_urls_the_web_search_returned_are_handed_back():
+    cited = SimpleNamespace(type="web_search_result_location", url="https://c.example/page")
+    client = FakeClient(
+        reply(search_result("https://a.example/", "https://b.example/x"), stop_reason="pause_turn"),
+        reply(
+            SimpleNamespace(type="text", text="found it", citations=[cited]),
+            tool_use(SUBMIT_TOOL, {"value": 1}),
+        ),
+    )
+    urls: list[str] = []
+
+    run(client, web_search=True, search_urls=urls)
+
+    assert urls == ["https://a.example/", "https://b.example/x", "https://c.example/page"]
+
+
+def test_a_failed_web_search_contributes_no_urls():
+    failed = SimpleNamespace(
+        type="web_search_tool_result",
+        content=SimpleNamespace(
+            type="web_search_tool_result_error", error_code="max_uses_exceeded"
+        ),
+    )
+    client = FakeClient(reply(failed, tool_use(SUBMIT_TOOL, {"value": 1})))
+    urls: list[str] = []
+
+    run(client, web_search=True, search_urls=urls)
+
+    assert urls == []
