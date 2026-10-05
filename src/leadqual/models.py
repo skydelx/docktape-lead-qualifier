@@ -14,8 +14,11 @@ LEGAL_SUFFIXES = frozenset(
 
 
 def normalise_name(name: str) -> str:
-    """'Cloud Trim, Inc.', 'CloudTrim L.L.C.' and 'CLOUDTRIM' all become 'cloudtrim'."""
-    text = unicodedata.normalize("NFKC", name).casefold().replace(".", "")
+    """'Cloud Trim, Inc.', 'CloudTrim L.L.C.', 'CloudTrím' and 'CLOUDTRIM' become 'cloudtrim'."""
+    decomposed = unicodedata.normalize("NFKD", name)
+    # Accents are dropped, not the letters under them: 'Rába' becomes 'raba', not 'rba'.
+    unaccented = "".join(char for char in decomposed if not unicodedata.combining(char))
+    text = unaccented.casefold().replace(".", "")
     words = re.sub(r"[^a-z0-9]+", " ", text).split()
     while words and words[-1] in LEGAL_SUFFIXES:
         words.pop()

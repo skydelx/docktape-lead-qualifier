@@ -225,9 +225,9 @@ competitor") cannot clear a match the code can see. A test runs every possible a
 outcome against this guarantee (`test_invariant_no_agent_outcome_softens_a_hard_match`).
 Its limits: the place check works on the location that research or the agent
 extracted, so it is only as good as that extraction; and the name comparison only
-ignores case, spacing, punctuation and legal suffixes, so an accented letter
-("CloudTrím") or a look-alike from another alphabet (a Cyrillic "С" in "СloudTrim") gets
-past it, leaving that case to the agent alone.
+ignores case, accents, spacing, punctuation and legal suffixes, so a look-alike letter
+from another alphabet (a Cyrillic "С" in "СloudTrim") gets past it, leaving that case to
+the agent alone.
 
 **Measured, not asserted.** `eval/compliance_cases.json` holds 26 fictional leads
 (16 competitor cases, 10 headquarters cases, including three prompt-injection attempts

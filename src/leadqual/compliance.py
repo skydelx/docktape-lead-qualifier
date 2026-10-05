@@ -207,7 +207,7 @@ def _competitor_hint(
             why = f"the name contains '{competitor.name}'"
             return competitor.name, MatchType.PARTIAL_NAME, why
         for domain in (company.domain, research.final_domain, company.email_domain):
-            if domain and key in (normalise_name(label) for label in domain.split(".")):
+            if domain and any(key in normalise_name(label) for label in domain.split(".")):
                 why = f"the domain {domain} is named like {competitor.name}"
                 return competitor.name, MatchType.DOMAIN, why
     if research.sells_cloud_cost_optimization:

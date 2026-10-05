@@ -68,6 +68,9 @@ def company(name: str = "Acme Analytics", **fields) -> Company:
             "\uff23\uff4c\uff4f\uff55\uff44\uff34\uff52\uff49\uff4d Inc",
             "cloudtrim",
         ),  # full-width letters
+        ("CloudTrím Inc", "cloudtrim"),  # an accent must not hide a competitor
+        ("Clöud Trìm", "cloudtrim"),
+        ("Rába Holding", "rabaholding"),  # the letter stays, only its accent goes
     ],
 )
 def test_names_are_compared_without_spacing_punctuation_or_legal_suffix(name, normalised):
@@ -144,6 +147,8 @@ def test_a_name_that_contains_a_competitor_is_never_simply_clear(name):
     [
         {"domain": "app.cloudtrim.io"},
         {"domain": "acme.io", "email_domain": "mail.spendwisecloud.com"},
+        {"domain": "cloudtrim-eu.com"},  # the competitor's name inside a longer label
+        {"domain": "getrightsizecloud.io"},
     ],
 )
 def test_a_domain_named_like_a_competitor_is_never_simply_clear(domain_fields):
