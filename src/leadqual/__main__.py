@@ -9,6 +9,7 @@ import sys
 import time
 from pathlib import Path
 
+import anthropic
 from dotenv import load_dotenv
 
 from leadqual import evaluation, notify, tracker
@@ -41,9 +42,19 @@ def main() -> int:
         llm_settings = settings.llm.model_copy(update={"model": arguments.model})
         settings = settings.model_copy(update={"llm": llm_settings})
 
-    if arguments.command == "eval":
-        return _eval(arguments.cases, settings)
-    return _run(arguments.lead, settings, notify_sales=not arguments.no_notify)
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        print(
+            "ANTHROPIC_API_KEY is not set (copy .env.example to .env and fill it in).",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        if arguments.command == "eval":
+            return _eval(arguments.cases, settings)
+        return _run(arguments.lead, settings, notify_sales=not arguments.no_notify)
+    except anthropic.AuthenticationError:
+        print("Claude API: the API key was rejected.", file=sys.stderr)
+        return 2
 
 
 def configure_logging() -> None:
@@ -59,12 +70,16 @@ def _run(lead_path: Path, settings: Settings, *, notify_sales: bool) -> int:
         print("SLACK_WEBHOOK_URL is not set (use --no-notify to skip Slack).", file=sys.stderr)
         return 2
 
+    try:
+        submission = json.loads(lead_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        print(f"Cannot read the lead file {lead_path}: {error}", file=sys.stderr)
+        return 2
+
     llm = ClaudeLlm(settings.llm)
     started = time.perf_counter()
     try:
-        result = qualify(
-            json.loads(lead_path.read_text(encoding="utf-8")), settings=settings, llm=llm
-        )
+        result = qualify(submission, settings=settings, llm=llm)
     except InvalidLead as error:
         print(f"Invalid lead: {error}", file=sys.stderr)
         return 2

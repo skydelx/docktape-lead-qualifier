@@ -269,7 +269,9 @@ def _seen_by_agent(compliance: Compliance, agent_pages: Sequence[str]) -> bool:
     if not place:
         return False
     # Whole words only: "USA" must not count as seen because a page says "usage".
-    pattern = re.compile(rf"(?<!\w){re.escape(place)}(?!\w)", re.IGNORECASE)
+    # An all-capitals abbreviation must also match in capitals: "US" is not "Contact us".
+    flags = 0 if place.isupper() else re.IGNORECASE
+    pattern = re.compile(rf"(?<!\w){re.escape(place)}(?!\w)", flags)
     return any(pattern.search(text) for text in agent_pages)
 
 

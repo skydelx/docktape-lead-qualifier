@@ -62,10 +62,14 @@ message and saves the full result with token counts under `runs/`.
 
 ## Proof
 
-Four leads were run live, in file order (01 to 04), into a fresh tracker. One
-safety-net rule was tightened after these runs and after the evaluation below; it can
-only turn a "clear" sanctions verdict into "unknown", and the current code reproduces
-all four rows from the stored results. The spreadsheet is
+Four leads were run live, in file order (01 to 04), into a fresh tracker. A few small
+code changes came after these runs and after the evaluation below: a stricter rule for
+a "clear" sanctions verdict, accent-insensitive names, competitor names inside longer
+domain labels, whole-word matching of the headquarters on pages the agent read, and
+web-search sources checked against the URLs the search actually returned. All but the
+last can only make a verdict stricter. Replaying the stored results through the current
+code gives the same four rows; the last check cannot be replayed, because the runs did
+not record the search results. The spreadsheet is
 `demo/leads.xlsx`, the full result of each run (findings, sources, reasoning, token
 counts) is in `demo/runs/`, and every one produced a delivered Slack message.
 
@@ -245,9 +249,10 @@ Current code, all 26 cases (`eval/results/claude-sonnet-5-5.json`):
 |---|---|---|---|---|
 | Claude Sonnet 5.5 | 26/26 | 1 (C08) | 69 s | 54 |
 
-This run was made after the last change to the prompts and to the research code. The
-safety-net rule tightened afterwards only turns a "clear" sanctions verdict into
-"unknown", which the evaluation counts the same ("not blocked"). The model was chosen by an earlier run of the first 24 cases on both candidates: Opus 5.5 and
+This run was made after the last change to the prompts. The later code changes (listed
+under Proof) do not touch the screening prompt, and the evaluation has not been re-run
+on them; the stricter sanctions rule only turns "clear" into "unknown", which the
+evaluation counts the same ("not blocked"). The model was chosen by an earlier run of the first 24 cases on both candidates: Opus 5.5 and
 Sonnet 5.5 each got 24/24, Sonnet in about 40% of the time and with about two thirds
 of the tokens (`eval/results/claude-opus-5-5.json` is that earlier run). Cases I wrote myself are a
 smoke test, not statistics.
@@ -305,7 +310,8 @@ smoke test, not statistics.
   (one short page, no web search) used about 5,000 input and 1,000 output tokens on
   Sonnet 5.5. A real lead with web search used between about 19,000 and 85,000 input
   tokens, because search results count as input; at list prices that averaged roughly
-  10 cents a lead over 40 real companies, and capping or skipping the search is the
+  10-12 cents a lead (tokens plus search fees) over 40 real companies, on a run not
+  included in this repository, and capping or skipping the search is the
   first lever if that matters.
 
 ## At scale: a cheaper model first (measured, not built)
@@ -350,7 +356,13 @@ only those candidates, as it judges near-matches to competitors now, with the sa
 safety net underneath. I did not build an MCP server either: here one program calls its
 own two tools. If the sales team wanted to ask Claude about a lead from their own chat,
 wrapping the research and screening tools in MCP would be the next step, and a small one,
-because they are already separate modules. Beyond that: a queue fed by the form instead of one lead per
+because they are already separate modules. The competitor check would also look at
+ownership, not just names: today "who is behind this company" comes only from what the
+company says on its own site. A company register would let code catch a listed
+competitor's subsidiary; the free GLEIF register, for example, links a company to its
+direct and ultimate parent. I left it out because the three competitors in the brief
+are made up, so there is nothing to look up, and many small companies are not in it.
+Beyond that: a queue fed by the form instead of one lead per
 run, a daily digest for low-scoring leads, and fit weights calibrated on which leads
 actually closed.
 

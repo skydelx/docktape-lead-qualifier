@@ -303,14 +303,38 @@ def test_a_page_that_names_no_headquarters_settles_nothing(agent_names):
     assert "clears nothing" in result.safety_net[0]
 
 
-def test_a_place_name_inside_another_word_settles_nothing():
-    """Found in review: 'USA' counted as seen because the page said 'usage'."""
-    site = FakeSite({"https://acme.io/pricing": "Pricing based on usage"})
-    llm = ReadingLlm("https://acme.io/pricing", verdict(hq_country="USA"))
+@pytest.mark.parametrize(
+    ("page", "agent_names"),
+    [
+        ("Pricing based on usage", "USA"),  # found in review: inside another word
+        ("Questions? Contact us.", "US"),  # found in the final review: a lower-case word
+        ("Log in to your account", "IN"),
+    ],
+)
+def test_a_place_name_that_is_really_another_word_settles_nothing(page, agent_names):
+    site = FakeSite({"https://acme.io/pricing": page})
+    llm = ReadingLlm("https://acme.io/pricing", verdict(hq_country=agent_names))
 
-    result = screen(company(declared_country="USA"), RESEARCHED, llm, SETTINGS, site)
+    result = screen(company(declared_country=agent_names), RESEARCHED, llm, SETTINGS, site)
 
     assert result.sanctions is SanctionsVerdict.UNKNOWN
+
+
+@pytest.mark.parametrize(
+    ("page", "agent_names"),
+    [
+        ("Acme Inc., Austin, TX, US", "US"),
+        ("Based in the U.S.", "U.S."),
+        ("Vienna, austria", "Austria"),
+    ],
+)
+def test_a_place_name_written_on_the_page_still_settles_it(page, agent_names):
+    site = FakeSite({"https://acme.io/imprint": page})
+    llm = ReadingLlm("https://acme.io/imprint", verdict(hq_country=agent_names))
+
+    result = screen(company(), RESEARCHED, llm, SETTINGS, site)
+
+    assert result.sanctions is SanctionsVerdict.CLEAR
 
 
 def test_a_page_the_agent_asked_for_but_did_not_get_settles_nothing():
