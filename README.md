@@ -160,9 +160,10 @@ can read and change them.
 | 5000+ | 25 | | inferred workload: medium | 25 |
 | | | | inferred workload: low | 5 |
 
-- Mid-sized companies score highest: the client describes its customers as startups and
-  SMBs, and a very large company means a longer sale for a small team. That is my
-  assumption, and one line to change.
+- Mid-sized companies score highest. the client's homepage names "startups, SMBs, and
+  enterprise teams", so large companies are customers too; I still rank them a little
+  lower because, for a small team, a very large company usually means a longer sale.
+  That is my assumption, and one line to change.
 - A declared bill beats an inferred workload, because only the lead knows its bill.
 - **Bonuses** of 5 points, capped at 10: runs on AWS or Oracle (the two providers
   the client's cost-optimisation page offers), a decision-maker job title, a stated
@@ -346,7 +347,10 @@ only listed firms are off limits. That is a name-matching problem, not a retriev
 so I would not reach for RAG: load the official lists (or a screening service), find
 candidate names with fuzzy, transliteration-aware matching, and let the agent judge
 only those candidates, as it judges near-matches to competitors now, with the same code
-safety net underneath. Beyond that: a queue fed by the form instead of one lead per
+safety net underneath. I did not build an MCP server either: here one program calls its
+own two tools. If the sales team wanted to ask Claude about a lead from their own chat,
+wrapping the research and screening tools in MCP would be the next step, and a small one,
+because they are already separate modules. Beyond that: a queue fed by the form instead of one lead per
 run, a daily digest for low-scoring leads, and fit weights calibrated on which leads
 actually closed.
 

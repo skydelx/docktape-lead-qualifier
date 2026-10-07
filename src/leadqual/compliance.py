@@ -265,8 +265,12 @@ def _sanctions_floor(
 
 def _seen_by_agent(compliance: Compliance, agent_pages: Sequence[str]) -> bool:
     """The agent's headquarters counts only if that place stands on a page it fetched."""
-    place = (compliance.hq_country or "").strip().casefold()
-    return bool(place) and any(place in text.casefold() for text in agent_pages)
+    place = (compliance.hq_country or "").strip()
+    if not place:
+        return False
+    # Whole words only: "USA" must not count as seen because a page says "usage".
+    pattern = re.compile(rf"(?<!\w){re.escape(place)}(?!\w)", re.IGNORECASE)
+    return any(pattern.search(text) for text in agent_pages)
 
 
 def _place_floor(

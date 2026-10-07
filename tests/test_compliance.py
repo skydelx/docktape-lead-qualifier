@@ -303,6 +303,16 @@ def test_a_page_that_names_no_headquarters_settles_nothing(agent_names):
     assert "clears nothing" in result.safety_net[0]
 
 
+def test_a_place_name_inside_another_word_settles_nothing():
+    """Found in review: 'USA' counted as seen because the page said 'usage'."""
+    site = FakeSite({"https://acme.io/pricing": "Pricing based on usage"})
+    llm = ReadingLlm("https://acme.io/pricing", verdict(hq_country="USA"))
+
+    result = screen(company(declared_country="USA"), RESEARCHED, llm, SETTINGS, site)
+
+    assert result.sanctions is SanctionsVerdict.UNKNOWN
+
+
 def test_a_page_the_agent_asked_for_but_did_not_get_settles_nothing():
     site = FakeSite({"https://acme.io/": "Home"})
     llm = ReadingLlm("https://acme.io/imprint", verdict())
