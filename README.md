@@ -8,8 +8,8 @@ tells a sales rep on Slack. My solution to the Forward Deployed Engineer take-ho
 and the tests. My part was the decisions and the checking: reading the brief and the
 client's own website first, settling scope, the form fields and how fit and compliance
 should behave, then reviewing each step. I planned in two layers: a few AI models gave
-general plans from the brief alone (solid engineering ideas, such as "the AI can only
-make a verdict stricter"), then research on the client's own site made it specific:
+general plans from the brief alone (solid engineering ideas, such as "code under the
+AI can only make its verdict stricter"), then research on the client's own site made it specific:
 its customers, AWS and Oracle, its real form. Where reviewers agreed I took it, where
 they disagreed I decided, and where I could measure, I measured instead of voting. I wrote the expected answers of the evaluation
 before running it, and fresh Claude agents that had not seen the build reviewed the
