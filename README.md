@@ -1,4 +1,4 @@
-# the client Lead Qualifier
+# Lead Qualifier
 
 A prototype that takes a web-form submission, researches the company, screens it
 against a do-not-engage list, scores the fit, writes a row to an Excel tracker and
@@ -118,7 +118,7 @@ optional, each because it answers something that research cannot.
 | `country` | the sanctions check needs the headquarters, and many websites do not state it. A listed country declared here counts against the lead; an unlisted one clears nothing by itself, but tells the person checking where to look |
 | `company_size` (band) | the brief's first fit criterion; rarely on the website |
 | `monthly_cloud_spend` (band) | the brief's second fit criterion; invisible from outside |
-| `cloud_providers` | the client's own cost-optimisation page asks "Which cloud provider do you use?"; a website's hosting says little about where the product runs |
+| `cloud_providers` | The client's own cost-optimisation page asks "Which cloud provider do you use?"; a website's hosting says little about where the product runs |
 | `message` | a stated cloud-cost problem is the strongest buying signal a form can carry |
 
 Size and spend are bands with an "unknown" option, and a field the form posts empty
@@ -164,7 +164,7 @@ can read and change them.
 | 5000+ | 25 | | inferred workload: medium | 25 |
 | | | | inferred workload: low | 5 |
 
-- Mid-sized companies score highest. the client's homepage names "startups, SMBs, and
+- Mid-sized companies score highest. The client's homepage names "startups, SMBs, and
   enterprise teams", so large companies are customers too; I still rank them a little
   lower because, for a small team, a very large company usually means a longer sale.
   That is my assumption, and one line to change.
